@@ -16,7 +16,7 @@ from langchain_core.messages.base import BaseMessage
 #from sentence_transformers import SentenceTransformer
 import json
 
-cross_encoder = CrossEncoder('sentence-transformers/paraphrase-multilingual-mpnet-base-v2')
+cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-12-v2')
 
 
 
