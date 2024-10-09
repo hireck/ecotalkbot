@@ -17,8 +17,12 @@ from langchain_core.messages.base import BaseMessage
 import json
 
 #cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-12-v2') #sentence-transformers/paraphrase-multilingual-mpnet-base-v2'
-cross_encoder = CrossEncoder('amberoad/bert-multilingual-passage-reranking-msmarco', max_length=512)
+#cross_encoder = CrossEncoder('amberoad/bert-multilingual-passage-reranking-msmarco', max_length=512)
 
+def load_model():
+    return CrossEncoder('amberoad/bert-multilingual-passage-reranking-msmarco', max_length=512)
+
+cross_encoder = load_model()
 
 
 apikey = st.secrets["OPENAIAPIKEY"]
