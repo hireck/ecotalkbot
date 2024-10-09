@@ -16,7 +16,8 @@ from langchain_core.messages.base import BaseMessage
 #from sentence_transformers import SentenceTransformer
 import json
 
-cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-12-v2')
+#cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-12-v2') #sentence-transformers/paraphrase-multilingual-mpnet-base-v2'
+cross_encoder = CrossEncoder('amberoad/bert-multilingual-passage-reranking-msmarco', max_length=512)
 
 
 
@@ -86,7 +87,7 @@ Preceeding conversation:
 Question: {question}
 Helpful Answer:"""
 
-contextualizing_template = """ Given a chat history and the latest user question which might reference context in the chat history, formulate a standalone question which can be understood without the chat history. 
+contextualizing_template = """ Given a chat history and the latest user question which might reference context in the chat history, formulate a standalone question which can be understood without the chat history. The overall topic is biodiversity.
 Do NOT answer the question, just reformulate it if needed and otherwise return it as is.
 
 Chat history:
@@ -168,24 +169,21 @@ if user_input := st.chat_input():
     print(user_input)
     st.chat_message("human").write(user_input)
     prev_conv = '\n'.join([msg.type+': '+msg.content for msg in msgs.messages[-2:]])
-    if len(msgs.messages) > 1 and contains_referring(user_input):
-        contextualizing_prompt = contextualizing_template.format(history=prev_conv, question=user_input)
-        print(contextualizing_prompt)
-        contextualized_result = gpt3_5.invoke(contextualizing_prompt)
-        vector_query = contextualized_result.content
-        print(vector_query)
-    else: vector_query = user_input
+    #if len(msgs.messages) > 1:# and contains_referring(user_input):
+    contextualizing_prompt = contextualizing_template.format(history=prev_conv, question=user_input)
+    print(contextualizing_prompt)
+    contextualized_result = gpt3_5.invoke(contextualizing_prompt)
+    vector_query = contextualized_result.content
+    print(vector_query)
+    #else: vector_query = user_input
     retrieved = vectorstore.similarity_search(vector_query,k=20)
     cross_inp = [[vector_query, d.page_content] for d in retrieved]
     cross_scores = cross_encoder.predict(cross_inp)
-    scored_pos = [(score, d) for score, d in zip(cross_scores, retrieved) if score > 0]
-    if scored_pos:
-        reranked = sorted(scored_pos, key=lambda tup: tup[0], reverse=True)
-        docs = [r[1] for r in reranked[:7]]
-    else:
-        scored_neg = [(score, d) for score, d in zip(cross_scores, retrieved)]
-        reranked = sorted(scored_neg, key=lambda tup: tup[0], reverse=True) #if there are no positive score, take the 2 least negative ones
-        docs = [r[1] for r in reranked[:2]]
+    scored_pos = [(score[1], d) for score, d in zip(cross_scores, retrieved)]
+    #if scored_pos:
+    reranked = sorted(scored_pos, key=lambda tup: tup[0], reverse=True)
+    docs = [r[1] for r in reranked[:7]]
+    
     full_prompt = template.format(context=format_docs(docs), question=user_input, conversation=prev_conv)
     print(full_prompt)
     result = gpt4.invoke(full_prompt)
