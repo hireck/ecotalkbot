@@ -18,11 +18,11 @@ import json
 
 #cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-12-v2') #sentence-transformers/paraphrase-multilingual-mpnet-base-v2'
 #cross_encoder = CrossEncoder('amberoad/bert-multilingual-passage-reranking-msmarco', max_length=512)
+# @st.cache_resource
+# def load_model():
+#     return CrossEncoder('amberoad/bert-multilingual-passage-reranking-msmarco', max_length=512)
 
-def load_model():
-    return CrossEncoder('amberoad/bert-multilingual-passage-reranking-msmarco', max_length=512)
-
-cross_encoder = load_model()
+# cross_encoder = load_model()
 
 
 apikey = st.secrets["OPENAIAPIKEY"]
@@ -180,13 +180,15 @@ if user_input := st.chat_input():
     vector_query = contextualized_result.content
     print(vector_query)
     #else: vector_query = user_input
-    retrieved = vectorstore.similarity_search(vector_query,k=20)
-    cross_inp = [[vector_query, d.page_content] for d in retrieved]
-    cross_scores = cross_encoder.predict(cross_inp)
-    scored_pos = [(score[1], d) for score, d in zip(cross_scores, retrieved)]
-    #if scored_pos:
-    reranked = sorted(scored_pos, key=lambda tup: tup[0], reverse=True)
-    docs = [r[1] for r in reranked[:7]]
+    # retrieved = vectorstore.similarity_search(vector_query,k=20)
+    # cross_inp = [[vector_query, d.page_content] for d in retrieved]
+    # cross_scores = cross_encoder.predict(cross_inp)
+    # scored_pos = [(score[1], d) for score, d in zip(cross_scores, retrieved)]
+    # #if scored_pos:
+    # reranked = sorted(scored_pos, key=lambda tup: tup[0], reverse=True)
+    # docs = [r[1] for r in reranked[:7]]
+    docs = vectorstore.similarity_search(vector_query,k=10)
+    
     
     full_prompt = template.format(context=format_docs(docs), question=user_input, conversation=prev_conv)
     print(full_prompt)
