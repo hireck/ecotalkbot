@@ -147,22 +147,7 @@ for msg in msgs.messages:
     
     
 
-# def add_sources(docs):
-#     lines = []
-#     #lines.append('\nSources:')
-#     for num, rd in enumerate(docs): #result["source_documents"]):
-#         doc_info = []
-#         doc_info.append(str(num+1)+') '+str(rd.metadata["Title"]))
-#         section_info = []
-#         for item in rd.metadata:
-#             if item.startswith('Header'):
-#                 section_info.append(rd.metadata[item])
-#         if section_info:
-#             doc_info.append('  \n   (Section: '+', '.join(section_info)+')')
-#         doc_info.append('  \n'+rd.metadata["Link"])
-#         lines.append(''.join(doc_info))
-#     #text = '\"\"\"'+'\n'.join(lines)+'\"\"\"'
-#     return '  \n'.join(lines)
+
 
 def add_sources(docs, source_numbers):
     lines = []
@@ -220,16 +205,9 @@ if user_input := st.chat_input():
     contextualized_result = gpt3_5.invoke(contextualizing_prompt)
     vector_query = contextualized_result.content
     print(vector_query)
-    #else: vector_query = user_input
-    # retrieved = vectorstore.similarity_search(vector_query,k=20)
-    # cross_inp = [[vector_query, d.page_content] for d in retrieved]
-    # cross_scores = cross_encoder.predict(cross_inp)
-    # scored_pos = [(score[1], d) for score, d in zip(cross_scores, retrieved)]
-    # #if scored_pos:
-    # reranked = sorted(scored_pos, key=lambda tup: tup[0], reverse=True)
-    # docs = [r[1] for r in reranked[:7]]
-    docs = vectorstore.similarity_search(vector_query,k=10)
-
+    docs_long = vectorstore.similarity_search(vector_query,k=50)
+    farmer_docs = [d for d in docs_long if 'farmer' in d.metadata["Target audience"]]
+    docs = farmer_docs[:10]
     full_prompt = template.format(context=format_docs(docs), question=user_input, conversation=prev_conv)
     print(full_prompt)
     result = gpt4.invoke(full_prompt)
