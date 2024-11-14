@@ -79,9 +79,9 @@ template = """You are an expert on biodiversity. Your task is to answer the ques
 Use the following pieces of retrieved information to answer the user's question. 
 
 Answer in English if the latest user query is in English, and in Danish if the latest user query is in Danish. Be helpful. Volunteer additional information where relevant, but keep it concise. 
-Don't try to make up answers that are not supported by the retrieved information. If the retrieved documents do not contain sufficient information to answer the question, say so.
-Be critical of the information provided if needed. Mention the most impactful information first.
-Try to keep the conversation going.
+Don't try to make up answers that are not supported by the retrieved information. If no suitable documents were found or the retrieved documents do not contain sufficient information to answer the question, say so.
+Be critical of the information provided if needed. Mention the most impactful information first. Display formulas correctly, e.g. translating '\sum' to the sum symbol 'Σ'.
+Try to keep the conversation going. For example, ask the user if they are interested in a related topic, or would like more detail on something.
 
 Include references in your answer to the documents you used, to indicate where the information comes from. The documents are numbered. Use those numbers to refer to them. Use the term 'Document' followed by the number, e.g. '(Document 1)' Do not list the sources below your answer. They will be provided by a different component.
 
@@ -105,35 +105,15 @@ Latest user question:
 
 Standalone version of the question:
 """
-# QA_CHAIN_PROMPT = PromptTemplate.from_template(template)# Run chain
-# qa_chain = RetrievalQA.from_chain_type(
-#     llm,
-#     retriever=vectorstore.as_retriever(search_kwargs={"k": 5}),
-#     return_source_documents=True,
-#     chain_type_kwargs={"prompt": QA_CHAIN_PROMPT},
-#     memory=memory
-# )
-
-#prompt = PromptTemplate(input_variables=["context", "question"], template=template)
-#llm_chain = LLMChain(llm=llm, prompt=prompt, memory=memory)
-
-#prompt = ChatPromptTemplate.from_template(template)
-#chain = prompt | llm
-
 
 
 def format_docs(docs):
+    if docs == []:
+        return "No relevant documents were found."
     return"\n\n".join( str(num+1)+') '+doc.page_content+'\n'+json.dumps(doc.metadata, indent=4) for num, doc in enumerate(docs))
 
 
-# rag_chain = (
-#     {"context": retriever | format_docs, "question": RunnablePassthrough()}
-#     | prompt
-#     | llm
-#    # | StrOutputParser()
-# )#
-
-
+#keep sources of previous answers displayed
 for msg in msgs.messages:
     if msg.type == "ai" and hasattr(msg, "sources"):
         with st.chat_message("ai"):
@@ -147,45 +127,64 @@ for msg in msgs.messages:
     
     
 
-
+############################################
+#Refence handling
 
 def add_sources(docs, source_numbers):
     lines = []
     #lines.append('\nSources:')
-    for count, num in enumerate(source_numbers):
-        rd = docs[int(num)-1]
-        doc_info = []
-        doc_info.append(str(count+1)+') '+str(rd.metadata["Title"]))
-        section_info = []
-        for item in rd.metadata:
-            if item.startswith('Header'):
-                section_info.append(rd.metadata[item])
-        if section_info:
-            doc_info.append('  \n   (Section: '+', '.join(section_info)+')')
-        doc_info.append('  \n'+rd.metadata["Link"])
-        lines.append(''.join(doc_info))
+    if docs and source_numbers:
+        for count, num in enumerate(source_numbers):
+            rd = docs[int(num)-1]
+            doc_info = []
+            doc_info.append(str(count+1)+') '+str(rd.metadata["Title"]))
+            section_info = []
+            for item in rd.metadata:
+                if item.startswith('Header'):
+                    section_info.append(rd.metadata[item])
+            if section_info:
+                doc_info.append('  \n   (Section: '+', '.join(section_info)+')')
+            doc_info.append('  \n'+rd.metadata["Link"])
+            lines.append(''.join(doc_info))
     #text = '\"\"\"'+'\n'.join(lines)+'\"\"\"'
+    else:
+        lines = ["No relevant information was found in the sources that were selected for this project. Any information provided by the LLM stems from the LLM's internal knowledge and should be checked for accuracy."]
     return '  \n'.join(lines)
-
-
-def f7(seq):
-    seen = set()
-    seen_add = seen.add
-    return [x for x in seq if not (x in seen or seen_add(x))]
 
 def replace_in_text(x, y, text):
     # Define the regex pattern to match 'Document x' with exact match on x
     pattern = rf'Document {x}(?=\b|\D)'
-    
     # Define the replacement text 'Document y'
     replacement = f'Source {y}'
-    
     # Use re.sub() to replace all instances of 'Document x' with 'Document y'
-    updated_text = re.sub(pattern, replacement, text)
-    
+    updated_text = re.sub(pattern, replacement, text) 
     return updated_text
+
+def replace_documents_list(text):
+    # Define the regex pattern to match '(Documents x, y, z)'
+    pattern = r'\(Documents (\d+(?:, \d+)*)\)'
+    # Replacement function to reformat the matched text
+    def replacement_function(match):
+        # Extract the list of numbers from the match
+        numbers = match.group(1).split(', ')
+        # Join each number with 'Document ' prefix
+        new_text = ', '.join([f'Document {num}' for num in numbers])
+        # Return the formatted text in the desired format
+        return f'({new_text})'
+    # Use re.sub() to replace all instances of '(Documents x, y, z)' with '(Document x, Document y, Document z)'
+    updated_text = re.sub(pattern, replacement_function, text)
+    return updated_text
+
+def f7(seq): #deduplication of list while keeping order
+    seen = set()
+    seen_add = seen.add
+    return [x for x in seq if not (x in seen or seen_add(x))]
     
 def used_sources(answer):
+    listed_pattern = r'\d+, ?\d'
+    listed = re.findall(listed_pattern, answer)
+    if listed:
+        answer = replace_documents_list(answer)
     pattern = r'Document \d+'
     used = re.findall(pattern, answer)
     used = f7(used)
@@ -193,7 +192,7 @@ def used_sources(answer):
     for num, u in enumerate(used):
         answer = replace_in_text(u, str(num+1), answer)
     return answer, used
-
+#########################################################
 
 if user_input := st.chat_input():
     print(user_input)
