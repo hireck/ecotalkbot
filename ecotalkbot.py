@@ -69,8 +69,17 @@ msgs = StreamlitChatMessageHistory(key="langchain_messages")
 #message_history = []
 
 
+
+with st.chat_message("ai"):
+        st.write("Velkommen til EcoTalkBot – Tal med mig om biodiversitet på landbrugsjord")
+        expander = st.expander("Hvad er EcoTalkBot?")
+        expander.write("EcoTalkBot er en chatbot udviklet som en del af et forskningsprojekt på Aarhus Universitet, der har til formål at fremme forståelsen og engagementet i biodiversitet på landbrugsjord. Chatbotten giver dig mulighed for at have en interaktiv dialog baseret på pålidelig information i et tilgængeligt format og henviser til de kilder, som svarene bygger på.")
+        expander = st.expander("Sådan bruger du EcoTalkBot")
+        expander.write("EcoTalkBot er i øjeblikket i en testfase og indsamler data udelukkende til testformål. I denne periode er du velkommen til at interagere med chatbotten ved at stille spørgsmål om biodiversitet på landbrugsjord. Svarene er baseret på udvalgte, pålidelige kilder, som er opført under hvert svar for gennemsigtighed. Testfasen hjælper os med at forbedre chatbotten, samtidig med at vi støtter oplyst dialog om biodiversitet på landbrugsjord.")
+        expander = st.expander("Finansiering")
+        expander.write("Dette projekt er finansieret af seed funding fra DIGIT, Aarhus University Centre for Digitalisation, Big Data og Data Analytics. EcoTalkBot er en del af EcoMetrics-projektet, som har til formål at udvikle rammer for biodiversitet i landbrugslandskaber. Yderligere finansiering er ydet af Ministeriet for Fødevarer, Landbrug og Fiskeri gennem Organic RRD9, koordineret af ICROFS (Internationalt Center for Forskning i Økologiske Fødevaresystemer) med støtte fra Grønt Udviklings- og Demonstrationsprogram (GUDP). Læs mere om projektet her https://projects.au.dk/sess/projects/ecometric")
 if len(msgs.messages) == 0:
-    new_msg = BaseMessage(type='ai', content="How can I help you?")
+    new_msg = BaseMessage(type='ai', content="Hvordan kan jeg hjælpe dig? / How can I help you?")
     msgs.add_message(new_msg)
     #msgs.add_ai_message("How can I help you?")
 
@@ -162,13 +171,17 @@ def replace_in_text(x, y, text):
 
 def replace_documents_list(text):
     # Define the regex pattern to match '(Documents x, y, z)'
-    pattern = r'\(Documents (\d+(?:, \d+)*)\)'
+    pattern = r'\(Documents (\d+(?:, \d+)*(?:,? and \d+)?)\)'
     # Replacement function to reformat the matched text
     def replacement_function(match):
         # Extract the list of numbers from the match
-        numbers = match.group(1).split(', ')
+        numbers = match.group(1)
+        #print(numbers)
+        number_list = re.split(r', and |, | and ', numbers)
+        #print(number_list)
         # Join each number with 'Document ' prefix
-        new_text = ', '.join([f'Document {num}' for num in numbers])
+        new_text = ', '.join([f'Document {num}' for num in number_list])
+        #print(new_text)
         # Return the formatted text in the desired format
         return f'({new_text})'
     # Use re.sub() to replace all instances of '(Documents x, y, z)' with '(Document x, Document y, Document z)'
@@ -197,7 +210,7 @@ def used_sources(answer):
 if user_input := st.chat_input():
     print(user_input)
     st.chat_message("human").write(user_input)
-    prev_conv = '\n'.join([msg.type+': '+msg.content for msg in msgs.messages[-2:]])
+    prev_conv = '\n'.join([msg.type+': '+msg.content for msg in msgs.messages[-4:]])
     #if len(msgs.messages) > 1:# and contains_referring(user_input):
     contextualizing_prompt = contextualizing_template.format(history=prev_conv, question=user_input)
     print(contextualizing_prompt)
@@ -223,7 +236,7 @@ if user_input := st.chat_input():
         st.write(ai_answer)#+add_sources(docs))
         expander = st.expander("See sources")
         expander.write(sources) 
-    ai_msg = BaseMessage(type="ai", content=result.content)
+    ai_msg = BaseMessage(type="ai", content=ai_answer)
     setattr(ai_msg, 'sources', sources)
     msgs.add_message(ai_msg)    
     
