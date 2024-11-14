@@ -78,6 +78,8 @@ with st.chat_message("ai"):
         expander.write("EcoTalkBot er i øjeblikket i en testfase og indsamler data udelukkende til testformål. I denne periode er du velkommen til at interagere med chatbotten ved at stille spørgsmål om biodiversitet på landbrugsjord. Svarene er baseret på udvalgte, pålidelige kilder, som er opført under hvert svar for gennemsigtighed. Testfasen hjælper os med at forbedre chatbotten, samtidig med at vi støtter oplyst dialog om biodiversitet på landbrugsjord.")
         expander = st.expander("Finansiering")
         expander.write("Dette projekt er finansieret af seed funding fra DIGIT, Aarhus University Centre for Digitalisation, Big Data og Data Analytics. EcoTalkBot er en del af EcoMetrics-projektet, som har til formål at udvikle rammer for biodiversitet i landbrugslandskaber. Yderligere finansiering er ydet af Ministeriet for Fødevarer, Landbrug og Fiskeri gennem Organic RRD9, koordineret af ICROFS (Internationalt Center for Forskning i Økologiske Fødevaresystemer) med støtte fra Grønt Udviklings- og Demonstrationsprogram (GUDP). Læs mere om projektet her https://projects.au.dk/sess/projects/ecometric")
+        expander = st.expander("Kontakt os")
+        expander.write("Hvis du har spørgsmål, er du velkommen til at kontakte den ansvarlige forsker: Gabriele Torma, Sektion for Agricultural Biodiversity, Institut for Agroøkologi, Aarhus Universitet, Email: gtorma@agro.au.dk  \n\n  Tak for din interesse i EcoTalkBot!")
 if len(msgs.messages) == 0:
     new_msg = BaseMessage(type='ai', content="Hvordan kan jeg hjælpe dig? / How can I help you?")
     msgs.add_message(new_msg)
