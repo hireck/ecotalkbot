@@ -207,13 +207,17 @@ if user_input := st.chat_input():
     docs_long = vectorstore.similarity_search(vector_query,k=50)
     farmer_docs = [d for d in docs_long if 'farmer' in d.metadata["Target audience"]]
     docs = farmer_docs[:10]
+    if farmer_docs == []:
+        docs = docs_long[:7]
     full_prompt = template.format(context=format_docs(docs), question=user_input, conversation=prev_conv)
     print(full_prompt)
     result = gpt4.invoke(full_prompt)
     #sources = add_sources(docs)
     user_msg = BaseMessage(type="human", content=user_input)
     msgs.add_message(user_msg)
+    print(result.content)
     ai_answer, source_numbers = used_sources(result.content)
+    print(ai_answer)
     sources = add_sources(docs, source_numbers)
     with st.chat_message("ai"):
         st.write(ai_answer)#+add_sources(docs))
