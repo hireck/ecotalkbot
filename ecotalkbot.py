@@ -25,6 +25,44 @@ import re
 
 # cross_encoder = load_model()
 
+def check_password():
+    """Returns `True` if the user had a correct password."""
+
+    def login_form():
+        """Form with widgets to collect user information"""
+        with st.form("Credentials"):
+            st.text_input("Username", key="username")
+            st.text_input("Password", type="password", key="password")
+            st.form_submit_button("Log in", on_click=password_entered)
+
+    def password_entered():
+        """Checks whether a password entered by the user is correct."""
+        if st.session_state["username"] in st.secrets[
+            "passwords"
+        ] and hmac.compare_digest(
+            st.session_state["password"],
+            st.secrets.passwords[st.session_state["username"]],
+        ):
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # Don't store the username or password.
+        else:
+            st.session_state["password_correct"] = False
+
+    # Return True if the username + password is validated.
+    if st.session_state.get("password_correct", False):
+        return True
+
+    # Show inputs for username + password.
+    login_form()
+    if "password_correct" in st.session_state:
+        st.error("user not known or password incorrect")
+    return False
+st.session_state.username = st.session_state.get('username', '')
+
+if not check_password():
+    st.stop()
+
+st.write(f"Welcome, {st.session_state['username']}!")
 
 apikey = st.secrets["OPENAIAPIKEY"]
 headers = {
@@ -37,6 +75,19 @@ openai.api_key = apikey
 
 st.title('EcoTalkBot')
 
+with st.sidebar:
+    expander = st.expander("Hvad er EcoTalkBot?")
+    expander.write("EcoTalkBot er en chatbot udviklet som en del af et forskningsprojekt på Aarhus Universitet, der har til formål at fremme interessen og forståelsen for biodiversitet i landbrugslandet. Gennem en interaktiv dialog med chatbotten har du nem adgang til den nyeste viden omkring biodiversitet. Svarene er baseret et udvalg af pålidelige kilder, som henvises direkte til i svarene. Denne gennemsigtighed er med til at understøtte en let tilgængelig, oplyst dialog omkring biodiversitet i landbruget.")
+    expander = st.expander("Sådan bruger du EcoTalkBot")
+    expander.write("For at starte en dialog skal du blot skrive dit spørgsmål i feltet nedenfor. EcoTalBot er i øjeblikket i en testfase og indsamler data fra brugerinteraktioner som en del af projektet. Vi bruger udelukkende jeres samtaler til videnskabelige analyser i forbindelse med vores forskning.")
+    expander = st.expander("Finansiering")
+    expander.write("EcoTalkBot er en del af projektet EcoMetric, som har til formål at udvikle rammerne for et biodiversitetsmål, som kan bruges i forvaltningen til at fremme biodiversitet i landbrugslandskaber. EcoTalkBot er finansieret af seed funding fra DIGIT (Centre for Digitalisation, Big Data and Data Analytics), Aarhus Universitet. Yderligere finansiering er ydet af Ministeriet for Fødevarer, Landbrug og Fiskeri gennem Organic RRD9, koordineret af ICROFS (Internationalt Center for Forskning i Økologiske Fødevaresystemer) med støtte fra Grønt Udviklings- og Demonstrationsprogram (GUDP). Læs mere om projektet her https://projects.au.dk/sess/projects/ecometric")
+    expander = st.expander("Kontakt os")
+    expander.write("Hvis du har spørgsmål, er du velkommen til at kontakte den ansvarlige forsker:  \n\n  Gabriele Torma  \n  Sektion for Agricultural Biodiversity  \n  Institut for Agroøkologi  \n Aarhus Universitet  \n  Email: gtorma@agro.au.dk  \n\n\n  Tak for din interesse i EcoTalkBot!")
+    #with st.container:
+    st.write("  \n\n  You are logged in as: ")
+    #st.write(username)
+    st.write(st.session_state["username"])
 
 @st.cache_resource
 def load_vectors():
@@ -70,21 +121,15 @@ msgs = StreamlitChatMessageHistory(key="langchain_messages")
 
 
 
-with st.chat_message("ai"):
-        st.write("Velkommen til EcoTalkBot – Tal med mig om biodiversitet på landbrugsjord")
-        expander = st.expander("Hvad er EcoTalkBot?")
-        expander.write("EcoTalkBot er en chatbot udviklet som en del af et forskningsprojekt på Aarhus Universitet, der har til formål at fremme forståelsen og engagementet i biodiversitet på landbrugsjord. Chatbotten giver dig mulighed for at have en interaktiv dialog baseret på pålidelig information i et tilgængeligt format og henviser til de kilder, som svarene bygger på.")
-        expander = st.expander("Sådan bruger du EcoTalkBot")
-        expander.write("EcoTalkBot er i øjeblikket i en testfase og indsamler data udelukkende til testformål. I denne periode er du velkommen til at interagere med chatbotten ved at stille spørgsmål om biodiversitet på landbrugsjord. Svarene er baseret på udvalgte, pålidelige kilder, som er opført under hvert svar for gennemsigtighed. Testfasen hjælper os med at forbedre chatbotten, samtidig med at vi støtter oplyst dialog om biodiversitet på landbrugsjord.")
-        expander = st.expander("Finansiering")
-        expander.write("Dette projekt er finansieret af seed funding fra DIGIT, Aarhus University Centre for Digitalisation, Big Data og Data Analytics. EcoTalkBot er en del af EcoMetrics-projektet, som har til formål at udvikle rammer for biodiversitet i landbrugslandskaber. Yderligere finansiering er ydet af Ministeriet for Fødevarer, Landbrug og Fiskeri gennem Organic RRD9, koordineret af ICROFS (Internationalt Center for Forskning i Økologiske Fødevaresystemer) med støtte fra Grønt Udviklings- og Demonstrationsprogram (GUDP). Læs mere om projektet her https://projects.au.dk/sess/projects/ecometric")
-        expander = st.expander("Kontakt os")
-        expander.write("Hvis du har spørgsmål, er du velkommen til at kontakte den ansvarlige forsker: Gabriele Torma, Sektion for Agricultural Biodiversity, Institut for Agroøkologi, Aarhus Universitet, Email: gtorma@agro.au.dk  \n\n  Tak for din interesse i EcoTalkBot!")
+#with st.chat_message("ai"):
+#    st.write("Velkommen til EcoTalkBot – Tal med mig om biodiversitet på landbrugsjord")
+
+
 if len(msgs.messages) == 0:
-    new_msg = BaseMessage(type='ai', content="Hvordan kan jeg hjælpe dig? / How can I help you?")
+    new_msg = BaseMessage(type='ai', content="Velkommen til EcoTalkBot – Tal med mig om biodiversitet på landbrugsjord  \n\n  Hvordan kan jeg hjælpe dig?")
     msgs.add_message(new_msg)
     #msgs.add_ai_message("How can I help you?")
-
+st.write(f"Welcome, {st.session_state['username']}!")
 template = """You are an expert on biodiversity. Your task is to answer the questions of Danish farmers and consultants of Danish farmer organizations. The goal is  to help farmers get a better understanding of biodiversity, identify opportunities to enhance biodiversity on their land, and solve problems related to biodiversity practices.
 
 Use the following pieces of retrieved information to answer the user's question. 
@@ -92,9 +137,9 @@ Use the following pieces of retrieved information to answer the user's question.
 Answer in English if the latest user query is in English, and in Danish if the latest user query is in Danish. Be helpful. Volunteer additional information where relevant, but keep it concise. 
 Don't try to make up answers that are not supported by the retrieved information. If no suitable documents were found or the retrieved documents do not contain sufficient information to answer the question, say so.
 Be critical of the information provided if needed. Mention the most impactful information first. Display formulas correctly, e.g. translating '\sum' to the sum symbol 'Σ'.
-Try to keep the conversation going. For example, ask the user if they are interested in a related topic, or would like more detail on something.
+Try to keep the conversation going. For example, ask the user if they are interested in a related/neighboring topic, or would like more detail on something. For example if they are interested in the lapwing, they may also be interested in other relevant birds, such as the skylark.
 
-Include references in your answer to the documents you used, to indicate where the information comes from. The documents are numbered. Use those numbers to refer to them. Use the term 'Document' followed by the number, e.g. '(Document 1)' Do not list the sources below your answer. They will be provided by a different component.
+Include references in your answer to the documents you used, to indicate where the information comes from. The documents are numbered. Use those numbers to refer to them. Use the term 'Document' followed by the number, e.g. '(Document 1)' or '(Document 2, Document 5)' when citing multiple documents. Do not list the sources below your answer. They will be provided by a different component.
 
 Retrieved information:
 {context}
@@ -145,6 +190,7 @@ def add_sources(docs, source_numbers):
     lines = []
     #lines.append('\nSources:')
     if docs and source_numbers:
+        print(source_numbers)
         for count, num in enumerate(source_numbers):
             rd = docs[int(num)-1]
             doc_info = []
@@ -159,21 +205,22 @@ def add_sources(docs, source_numbers):
             lines.append(''.join(doc_info))
     #text = '\"\"\"'+'\n'.join(lines)+'\"\"\"'
     else:
-        lines = ["No relevant information was found in the sources that were selected for this project. Any information provided by the LLM stems from the LLM's internal knowledge and should be checked for accuracy."]
+        lines = ["De oplysninger, der præsenteres her, refererer ikke eksplicit til de kilder, der blev udvalgt til EcoTalkBot-projektet. Der kan være behov for ekstra forsigtighed med hensyn til nøjagtighed."]
+        #lines = ["The information presented here does not explicitly reference the sources that were selected for the EcoTalkBot project. Extra caution with respect to accuracy may be in order."]
     return '  \n'.join(lines)
 
 def replace_in_text(x, y, text):
     # Define the regex pattern to match 'Document x' with exact match on x
     pattern = rf'Document {x}(?=\b|\D)'
     # Define the replacement text 'Document y'
-    replacement = f'Source {y}'
+    replacement = f'Kilde {y}'
     # Use re.sub() to replace all instances of 'Document x' with 'Document y'
     updated_text = re.sub(pattern, replacement, text) 
     return updated_text
 
 def replace_documents_list(text):
     # Define the regex pattern to match '(Documents x, y, z)'
-    pattern = r'\(Documents (\d+(?:, \d+)*(?:,? and \d+)?)\)'
+    pattern = r'\(Documents? (\d+(?:, \d+)*(?:,? and \d+)?)\)'
     # Replacement function to reformat the matched text
     def replacement_function(match):
         # Extract the list of numbers from the match
@@ -195,7 +242,7 @@ def f7(seq): #deduplication of list while keeping order
     seen_add = seen.add
     return [x for x in seq if not (x in seen or seen_add(x))]
     
-def used_sources(answer):
+def used_sources(answer, lendocs):
     listed_pattern = r'\d+, ?\d'
     listed = re.findall(listed_pattern, answer)
     if listed:
@@ -204,39 +251,51 @@ def used_sources(answer):
     used = re.findall(pattern, answer)
     used = f7(used)
     used = [u.split()[-1] for u in used]
+    remove = [u for u in used if int(u) > lendocs]
+    used = [u for u in used if not u in remove]
     for num, u in enumerate(used):
         answer = replace_in_text(u, str(num+1), answer)
+    if remove:
+        for rn in remove:
+            if '(Document '+rn+')' in answer:
+                answer = answer.replace('(Document '+rn+')', '')
+            elif 'Document '+rn+',' in answer:
+                answer = answer.replace('Document '+rn+', ', '')
+            elif ', Document '+rn in answer:
+                answer = answer.replace(', Document '+rn, '')
     return answer, used
 #########################################################
 
 if user_input := st.chat_input():
+    st.write(f"Welcome, {st.session_state['username']}!")
     print(user_input)
     st.chat_message("human").write(user_input)
     prev_conv = '\n'.join([msg.type+': '+msg.content for msg in msgs.messages[-4:]])
     #if len(msgs.messages) > 1:# and contains_referring(user_input):
-    contextualizing_prompt = contextualizing_template.format(history=prev_conv, question=user_input)
-    print(contextualizing_prompt)
-    contextualized_result = gpt3_5.invoke(contextualizing_prompt)
-    vector_query = contextualized_result.content
-    print(vector_query)
-    docs_long = vectorstore.similarity_search(vector_query,k=50)
-    farmer_docs = [d for d in docs_long if 'farmer' in d.metadata["Target audience"]]
-    docs = farmer_docs[:10]
-    if farmer_docs == []:
-        docs = docs_long[:7]
-    full_prompt = template.format(context=format_docs(docs), question=user_input, conversation=prev_conv)
-    print(full_prompt)
-    result = gpt4.invoke(full_prompt)
-    #sources = add_sources(docs)
-    user_msg = BaseMessage(type="human", content=user_input)
-    msgs.add_message(user_msg)
-    print(result.content)
-    ai_answer, source_numbers = used_sources(result.content)
-    print(ai_answer)
-    sources = add_sources(docs, source_numbers)
+    with st.spinner('Henter dokumenter...'):
+        contextualizing_prompt = contextualizing_template.format(history=prev_conv, question=user_input)
+        print(contextualizing_prompt)
+        contextualized_result = gpt3_5.invoke(contextualizing_prompt)
+        vector_query = contextualized_result.content
+        print(vector_query)
+        docs_long = vectorstore.similarity_search(vector_query,k=50)
+        farmer_docs = [d for d in docs_long if 'farmer' in d.metadata["Target audience"]]
+        docs = farmer_docs[:10]
+        if farmer_docs == []:
+            docs = docs_long[:7]
+    with st.spinner('Genererer svar...'):
+        full_prompt = template.format(context=format_docs(docs), question=user_input, conversation=prev_conv)
+        print(full_prompt)
+        result = gpt4.invoke(full_prompt)
+        user_msg = BaseMessage(type="human", content=user_input)
+        msgs.add_message(user_msg)
+        print(result.content)
+        ai_answer, source_numbers = used_sources(result.content, len(docs))
+        print(ai_answer)
+        sources = add_sources(docs, source_numbers)
     with st.chat_message("ai"):
         st.write(ai_answer)#+add_sources(docs))
-        expander = st.expander("See sources")
+        expander = st.expander("Se kilder")
         expander.write(sources) 
     ai_msg = BaseMessage(type="ai", content=ai_answer)
     setattr(ai_msg, 'sources', sources)
