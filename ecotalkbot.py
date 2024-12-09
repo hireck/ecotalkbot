@@ -16,6 +16,9 @@ from langchain_core.messages.base import BaseMessage
 #from sentence_transformers import SentenceTransformer
 import json
 import re
+import datetime
+import os
+import json
 
 #cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-12-v2') #sentence-transformers/paraphrase-multilingual-mpnet-base-v2'
 #cross_encoder = CrossEncoder('amberoad/bert-multilingual-passage-reranking-msmarco', max_length=512)
@@ -57,12 +60,17 @@ def check_password():
     if "password_correct" in st.session_state:
         st.error("user not known or password incorrect")
     return False
-st.session_state.username = st.session_state.get('username', '')
+
+st.session_state.username = st.session_state.get('username', '') #make sure username is persisted
 
 if not check_password():
     st.stop()
 
-st.write(f"Welcome, {st.session_state['username']}!")
+#st.write(f"Welcome, {st.session_state['username']}!")
+
+userdir = '/etc/data/data_collection/'+str(st.session_state['username'])+'/'
+if not os.path.isdir(userdir):
+    os.makedirs(userdir)
 
 apikey = st.secrets["OPENAIAPIKEY"]
 headers = {
@@ -102,11 +110,13 @@ vectorstore = load_vectors()
 @st.cache_resource
 def load_gpt3_5():
     #return ChatOpenAI(model_name="gpt-4-1106-preview", temperature=0)
+    #return ChatOpenAI(model_name="gpt-3.5-turbo-0125", temperature=0, base_url="https://ecotalkbot-ai-service.openai.azure.com/")
     return ChatOpenAI(model_name="gpt-3.5-turbo-0125", temperature=0)
 
 @st.cache_resource
 def load_gpt4():
     return ChatOpenAI(model_name="gpt-4o", temperature=0)
+    #return ChatOpenAI(model_name="gpt-4o", temperature=0, openai_api_base="https://ecotalkbot-ai-service.openai.azure.com/")
     
     
 gpt3_5 = load_gpt3_5()
@@ -165,7 +175,7 @@ Standalone version of the question:
 
 def format_docs(docs):
     if docs == []:
-        return "No relevant documents were found."
+        return "Ingen relevante kilder blev fundet."#"No relevant documents were found."
     return"\n\n".join( str(num+1)+') '+doc.page_content+'\n'+json.dumps(doc.metadata, indent=4) for num, doc in enumerate(docs))
 
 
@@ -267,7 +277,7 @@ def used_sources(answer, lendocs):
 #########################################################
 
 if user_input := st.chat_input():
-    st.write(f"Welcome, {st.session_state['username']}!")
+    #st.write(f"Welcome, {st.session_state['username']}!")
     print(user_input)
     st.chat_message("human").write(user_input)
     prev_conv = '\n'.join([msg.type+': '+msg.content for msg in msgs.messages[-4:]])
@@ -275,7 +285,7 @@ if user_input := st.chat_input():
     with st.spinner('Henter dokumenter...'):
         contextualizing_prompt = contextualizing_template.format(history=prev_conv, question=user_input)
         print(contextualizing_prompt)
-        contextualized_result = gpt3_5.invoke(contextualizing_prompt)
+        contextualized_result = gpt4.invoke(contextualizing_prompt)
         vector_query = contextualized_result.content
         print(vector_query)
         docs_long = vectorstore.similarity_search(vector_query,k=50)
@@ -300,6 +310,25 @@ if user_input := st.chat_input():
     ai_msg = BaseMessage(type="ai", content=ai_answer)
     setattr(ai_msg, 'sources', sources)
     msgs.add_message(ai_msg)    
+    time = datetime.datetime.now()
+    interaction = {"user":st.session_state['username'], "date_time":str(time)}
+    interaction["user_input"] = user_input
+    interaction["contextualized_query"] = vector_query
+    interaction["previous_interactions"] = prev_conv
+    interaction["retireved_documents"] = []
+    for d in docs:
+        docjson = {"metadata":d.metadata, "page_content":d.page_content}
+        interaction["retireved_documents"].append(docjson)
+    interaction["original_answer"] = result.content
+    interaction["sources"] = sources
+    #for d in sources:
+        #docjson = {"metadata":d.metadata, "page_content":d.page_content}
+        #interaction["sources"].append(docjson)
+    interaction["final_answer"] = ai_answer
+    filename = str(time)+'.json'
+    path = userdir+filename
+    with open(path, 'w') as f:
+        json.dump(interaction, f)
     
    
     
