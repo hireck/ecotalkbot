@@ -139,7 +139,7 @@ if len(msgs.messages) == 0:
     new_msg = BaseMessage(type='ai', content="Velkommen til EcoTalkBot – Tal med mig om biodiversitet på landbrugsjord  \n\n  Hvordan kan jeg hjælpe dig?")
     msgs.add_message(new_msg)
     #msgs.add_ai_message("How can I help you?")
-st.write(f"Welcome, {st.session_state['username']}!")
+#st.write(f"Welcome, {st.session_state['username']}!")
 template = """You are an expert on biodiversity. Your task is to answer the questions of Danish farmers and consultants of Danish farmer organizations. The goal is  to help farmers get a better understanding of biodiversity, identify opportunities to enhance biodiversity on their land, and solve problems related to biodiversity practices.
 
 Use the following pieces of retrieved information to answer the user's question. 
