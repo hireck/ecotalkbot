@@ -1,5 +1,6 @@
 #from langchain.chat_models import ChatOpenAI
-from langchain_openai import ChatOpenAI
+#from langchain_openai import ChatOpenAI
+from langchain_openai import AzureChatOpenAI
 #from langchain.chains import RetrievalQA
 #from langchain.prompts import PromptTemplate
 #from langchain.prompts import ChatPromptTemplate
@@ -115,11 +116,21 @@ def load_gpt3_5():
 
 @st.cache_resource
 def load_gpt4():
-    return ChatOpenAI(model_name="gpt-4o", temperature=0)
-    #return ChatOpenAI(model_name="gpt-4o", temperature=0, openai_api_base="https://ecotalkbot-ai-service.openai.azure.com/")
+    #return ChatOpenAI(model_name="gpt-4o", temperature=0)
+    #return ChatOpenAI(deployment_name="gpt-4o", temperature=0, openai_api_base="https://au548-m4jm8vwr-swedencentral.cognitiveservices.azure.com/", openai_api_key="4uphKmHYTcaOdGZzb3PQGrSmhPL5Uz1Wtn5xNPpLCbw3k74cqanCJQQJ99ALACfhMk5XJ3w3AAAAACOG9e29")
+    return AzureChatOpenAI(
+    azure_deployment="gpt-4o",  # or your deployment
+    api_version="2024-08-01-preview",  # or your api version
+    temperature=0,
+    max_tokens=None,
+    timeout=None,
+    max_retries=2,
+    azure_endpoint="https://au548-m4jm8vwr-swedencentral.cognitiveservices.azure.com",
+    #api_key="4uphKmHYTcaOdGZzb3PQGrSmhPL5Uz1Wtn5xNPpLCbw3k74cqanCJQQJ99ALACfhMk5XJ3w3AAAAACOG9e29",
+    # other params...
+)
     
-    
-gpt3_5 = load_gpt3_5()
+#gpt3_5 = load_gpt3_5()
 gpt4 = load_gpt4()
 #question = 'Where is the GAIA spacecraft?'
 
