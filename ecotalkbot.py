@@ -89,6 +89,8 @@ with st.sidebar:
     expander.write("EcoTalkBot er en chatbot udviklet som en del af et forskningsprojekt på Aarhus Universitet, der har til formål at fremme interessen og forståelsen for biodiversitet i landbrugslandet. Gennem en interaktiv dialog med chatbotten har du nem adgang til den nyeste viden omkring biodiversitet. Svarene er baseret et udvalg af pålidelige kilder, som henvises direkte til i svarene. Denne gennemsigtighed er med til at understøtte en let tilgængelig, oplyst dialog omkring biodiversitet i landbruget.")
     expander = st.expander("Sådan bruger du EcoTalkBot")
     expander.write("For at starte en dialog skal du blot skrive dit spørgsmål i feltet nedenfor. EcoTalBot er i øjeblikket i en testfase og indsamler data fra brugerinteraktioner som en del af projektet. Vi bruger udelukkende jeres samtaler til videnskabelige analyser i forbindelse med vores forskning.")
+    expander = st.expander("GDPR og datasikkerhed")
+    expander.write("Samtaledata og demografiske oplysninger vil blive pseudonymiseret for at sikre GDPR-overholdelse og vil blive behandlet fortroligt. Chatbotten fra universitetet registrerer dine svar, herunder eventuelle personlige oplysninger, som du måtte vælge at dele. For at minimere risikoen opfordrer vi dig til at undgå at inkludere personhenførbare oplysninger i samtalen. Vi opbevarer data sikkert på en krypteret server hos Aarhus Universitet og bruger kun de indsamlede data til videnskabelige, ikke-kommercielle formål, herunder potentielle publikationer og præsentationer. Data fra undersøgelsen opbevares i op til 5 år og slettes derefter sikkert. Alle dataindsamlinger og -behandlinger overholder EU's generelle databeskyttelsesforordning (GDPR) 2016/679. Vi bruger kun dine ikke-følsomme, pseudonymiserede data til forskningsformål. Hvis du har spørgsmål om, hvordan dine data opbevares eller behandles, kan du kontakte Aarhus Universitets databeskyttelsesrådgiver (DPO): Søren Broberg Nielsen via e-mail: soren.broberg@au.dk. Aarhus Universitet, CVR nr. 31119103, er dataansvarlig for behandlingen af dine data.")
     expander = st.expander("Finansiering")
     expander.write("EcoTalkBot er en del af projektet EcoMetric, som har til formål at udvikle rammerne for et biodiversitetsmål, som kan bruges i forvaltningen til at fremme biodiversitet i landbrugslandskaber. EcoTalkBot er finansieret af seed funding fra DIGIT (Centre for Digitalisation, Big Data and Data Analytics), Aarhus Universitet. Yderligere finansiering er ydet af Ministeriet for Fødevarer, Landbrug og Fiskeri gennem Organic RRD9, koordineret af ICROFS (Internationalt Center for Forskning i Økologiske Fødevaresystemer) med støtte fra Grønt Udviklings- og Demonstrationsprogram (GUDP). Læs mere om projektet her https://projects.au.dk/sess/projects/ecometric")
     expander = st.expander("Kontakt os")
@@ -126,7 +128,6 @@ def load_gpt4():
     timeout=None,
     max_retries=2,
     azure_endpoint="https://au548-m4jm8vwr-swedencentral.cognitiveservices.azure.com",
-    #api_key="4uphKmHYTcaOdGZzb3PQGrSmhPL5Uz1Wtn5xNPpLCbw3k74cqanCJQQJ99ALACfhMk5XJ3w3AAAAACOG9e29",
     # other params...
 )
     
