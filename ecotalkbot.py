@@ -4,15 +4,15 @@ from langchain_openai import AzureChatOpenAI
 #from langchain.chains import RetrievalQA
 #from langchain.prompts import PromptTemplate
 #from langchain.prompts import ChatPromptTemplate
-from langchain_community.vectorstores import FAISS
-from langchain_community.embeddings import HuggingFaceEmbeddings
+#from langchain_community.vectorstores import FAISS
+#from langchain_community.embeddings import HuggingFaceEmbeddings
 import streamlit as st
 import openai
 import hmac
-from langchain.memory import ConversationBufferMemory
+#from langchain.memory import ConversationBufferMemory
 from langchain.memory import StreamlitChatMessageHistory
 #from langchain.chains import LLMChain
-from sentence_transformers import CrossEncoder
+#from sentence_transformers import CrossEncoder
 from langchain_core.messages.base import BaseMessage
 #from sentence_transformers import SentenceTransformer
 import json
@@ -20,7 +20,14 @@ import re
 import datetime
 import os
 import json
+import copy
+import weaviate
+import weaviate.classes.query as wq
+from weaviate.classes.query import Filter
+from FlagEmbedding import BGEM3FlagModel
 
+client = weaviate.connect_to_local(host='weaviate')
+#st.write(client.is_ready()) 
 #cross_encoder = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-12-v2') #sentence-transformers/paraphrase-multilingual-mpnet-base-v2'
 #cross_encoder = CrossEncoder('amberoad/bert-multilingual-passage-reranking-msmarco', max_length=512)
 # @st.cache_resource
@@ -28,6 +35,8 @@ import json
 #     return CrossEncoder('amberoad/bert-multilingual-passage-reranking-msmarco', max_length=512)
 
 # cross_encoder = load_model()
+
+chunks = client.collections.get("DocumentChunk")
 
 def check_password():
     """Returns `True` if the user had a correct password."""
@@ -100,15 +109,15 @@ with st.sidebar:
     #st.write(username)
     st.write(st.session_state["username"])
 
-@st.cache_resource
-def load_vectors():
-    embedding_model =  HuggingFaceEmbeddings(model_name='sentence-transformers/distiluse-base-multilingual-cased-v2')#model_name="sentence-transformers/all-MiniLM-L12-v2")#, encode_kwargs={"normalize_embeddings": True},)
-    #embedding_model = HuggingFaceEmbeddings(model_name="thenlper/gte-large", encode_kwargs={"normalize_embeddings": True},)#"msmarco-bert-base-dot-v5")
-    #embedding_model =  HuggingFaceEmbeddings(model_name="thenlper/gte-large", encode_kwargs={"normalize_embeddings": True}SentenceTransformer('all-MiniLM-L6-v2')
-    #embedmodel.max_seq_length = 512
-    return FAISS.load_local("faiss_index_v1", embedding_model, allow_dangerous_deserialization=True)
+# @st.cache_resource
+# def load_vectors():
+#     embedding_model =  HuggingFaceEmbeddings(model_name='sentence-transformers/distiluse-base-multilingual-cased-v2')#model_name="sentence-transformers/all-MiniLM-L12-v2")#, encode_kwargs={"normalize_embeddings": True},)
+#     #embedding_model = HuggingFaceEmbeddings(model_name="thenlper/gte-large", encode_kwargs={"normalize_embeddings": True},)#"msmarco-bert-base-dot-v5")
+#     #embedding_model =  HuggingFaceEmbeddings(model_name="thenlper/gte-large", encode_kwargs={"normalize_embeddings": True}SentenceTransformer('all-MiniLM-L6-v2')
+#     #embedmodel.max_seq_length = 512
+#     return FAISS.load_local("faiss_index_v1", embedding_model, allow_dangerous_deserialization=True)
 
-vectorstore = load_vectors()
+#vectorstore = load_vectors()
 
 @st.cache_resource
 def load_gpt3_5():
@@ -134,6 +143,14 @@ def load_gpt4():
 #gpt3_5 = load_gpt3_5()
 gpt4 = load_gpt4()
 #question = 'Where is the GAIA spacecraft?'
+
+@st.cache_resource
+def load_vectormodel():
+    model = BGEM3FlagModel('BAAI/bge-m3')
+    return model
+
+with st.spinner('Vent venligst mens modellerne indlæses. Det kan tage lidt tid første gang.'):
+    model = load_vectormodel()
 
 #docs = vectorstore.similarity_search(question,k=5)
 
@@ -185,11 +202,17 @@ Standalone version of the question:
 """
 
 
+meta_fields = ["title", "section_headers", "link", "year", "target_audience", "geography", "keywords", "abstract", "type_of_information"]
 def format_docs(docs):
     if docs == []:
         return "Ingen relevante kilder blev fundet."#"No relevant documents were found."
-    return"\n\n".join( str(num+1)+') '+doc.page_content+'\n'+json.dumps(doc.metadata, indent=4) for num, doc in enumerate(docs))
-
+    doclist = []
+    for d in docs:
+        nd = {"page_content":d.properties["page_content"], "metadata":{}}
+        for field in meta_fields:
+            nd["metadata"][field] = d.properties.get(field)
+        doclist.append(nd)
+    return"\n\n".join( str(num+1)+') '+doc["page_content"]+'\n'+json.dumps(doc["metadata"], indent=4) for num, doc in enumerate(doclist))
 
 #keep sources of previous answers displayed
 for msg in msgs.messages:
@@ -216,14 +239,13 @@ def add_sources(docs, source_numbers):
         for count, num in enumerate(source_numbers):
             rd = docs[int(num)-1]
             doc_info = []
-            doc_info.append(str(count+1)+') '+str(rd.metadata["Title"]))
-            section_info = []
-            for item in rd.metadata:
-                if item.startswith('Header'):
-                    section_info.append(rd.metadata[item])
+            doc_info.append(str(count+1)+') '+str(rd.properties["title"]))
+            section_info = rd.properties["section_headers"]
             if section_info:
                 doc_info.append('  \n   (Section: '+', '.join(section_info)+')')
-            doc_info.append('  \n'+rd.metadata["Link"])
+            else:
+                doc_info.append('  \n   (Section: '+rd.properties["page_content"][:50]+'...)')
+            doc_info.append('  \n'+rd.properties["link"])
             lines.append(''.join(doc_info))
     #text = '\"\"\"'+'\n'.join(lines)+'\"\"\"'
     else:
@@ -286,6 +308,14 @@ def used_sources(answer, lendocs):
             elif ', Document '+rn in answer:
                 answer = answer.replace(', Document '+rn, '')
     return answer, used
+
+
+def vectorize(query):
+    sentences = [query]
+    embeddings = model.encode(sentences, batch_size=5, max_length=1024, return_dense=True, return_sparse=True)
+    return embeddings['dense_vecs'][0]
+
+store_fields = ["parent_doc", "chunk_number", "title", "section_headers", "page_content", "link", "year", "target_audience", "geography", "keywords", "data_type", "type_of_information"]
 #########################################################
 
 if user_input := st.chat_input():
@@ -298,13 +328,29 @@ if user_input := st.chat_input():
         contextualizing_prompt = contextualizing_template.format(history=prev_conv, question=user_input)
         print(contextualizing_prompt)
         contextualized_result = gpt4.invoke(contextualizing_prompt)
-        vector_query = contextualized_result.content
-        print(vector_query)
-        docs_long = vectorstore.similarity_search(vector_query,k=50)
-        farmer_docs = [d for d in docs_long if 'farmer' in d.metadata["Target audience"]]
-        docs = farmer_docs[:10]
-        if farmer_docs == []:
-            docs = docs_long[:7]
+        search_query = contextualized_result.content
+        print(search_query)
+        query_vector = vectorize(search_query)
+        response = chunks.query.near_vector(
+            filters=Filter.by_property("target_audience").contains_any(['farmer', 'all', 'consultant']),
+            near_vector=query_vector,  # A list of floating point numbers
+            limit=7,
+            return_metadata=wq.MetadataQuery(distance=True),
+            )
+        docs = response.objects
+        if len(docs) < 7:
+            no_filter = chunks.query.near_vector(
+                near_vector=query_vector,  # A list of floating point numbers
+                limit=7-len(docs),
+                return_metadata=wq.MetadataQuery(distance=True),
+                )
+            docs.extend(no_filter.objects)
+    
+        #docs_long = vectorstore.similarity_search(vector_query,k=50)
+        #farmer_docs = [d for d in docs_long if 'farmer' in d.metadata["Target audience"]]
+        #docs = farmer_docs[:10]
+        #if farmer_docs == []:
+            #docs = docs_long[:7]
     with st.spinner('Genererer svar...'):
         full_prompt = template.format(context=format_docs(docs), question=user_input, conversation=prev_conv)
         print(full_prompt)
@@ -325,12 +371,15 @@ if user_input := st.chat_input():
     time = datetime.datetime.now()
     interaction = {"user":st.session_state['username'], "date_time":str(time)}
     interaction["user_input"] = user_input
-    interaction["contextualized_query"] = vector_query
+    interaction["contextualized_query"] = search_query
     interaction["previous_interactions"] = prev_conv
-    interaction["retireved_documents"] = []
+    interaction["retrieved_documents"] = []
     for d in docs:
-        docjson = {"metadata":d.metadata, "page_content":d.page_content}
-        interaction["retireved_documents"].append(docjson)
+        docjson = {}
+        for pf in store_fields:
+            docjson[pf] = d.properties[pf]
+            docjson["distance_to_query"] = d.metadata.distance
+        interaction["retrieved_documents"].append(docjson)
     interaction["original_answer"] = result.content
     interaction["sources"] = sources
     #for d in sources:
