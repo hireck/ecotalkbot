@@ -239,7 +239,8 @@ def add_sources(docs, source_numbers):
         for count, num in enumerate(source_numbers):
             rd = docs[int(num)-1]
             doc_info = []
-            doc_info.append(str(count+1)+') '+str(rd.properties["title"]))
+            title = rd.properties["title"].replace('.', '\.')
+            doc_info.append(str(count+1)+'. '+title)
             section_info = rd.properties["section_headers"]
             if section_info:
                 doc_info.append('  \n   (Section: '+', '.join(section_info)+')')
