@@ -23,9 +23,14 @@ WORKDIR /app
 # Leverage a cache mount to /root/.cache/pip to speed up subsequent builds.
 # Leverage a bind mount to requirements.txt to avoid having to copy them into
 # into this layer.
+RUN apt-get update -q \
+  && apt-get install --no-install-recommends -y gcc zlib1g zlib1g-dev libffi-dev
+RUN pip install --upgrade pip setuptools wheel
+RUN pip install setuptools --upgrade
+RUN pip install -U FlagEmbedding
 RUN --mount=type=cache,target=/root/.cache/pip \
     --mount=type=bind,source=requirements.txt,target=requirements.txt \
-    python -m pip install -r requirements.txt
+    python -m pip install -r requirements.txt --use-deprecated=legacy-resolver
 
 # Switch to the non-privileged user to run the application.
 #USER appuser
