@@ -91,7 +91,7 @@ openai.api_key = apikey
 
 
 
-st.title('EcoTalkBot')
+#st.title('EcoTalkBot')
 
 with st.sidebar:
     expander = st.expander("Hvad er EcoTalkBot?")
@@ -119,19 +119,19 @@ with st.sidebar:
 
 #vectorstore = load_vectors()
 
-@st.cache_resource
-def load_gpt3_5():
+#@st.cache_resource
+#def load_gpt3_5():
     #return ChatOpenAI(model_name="gpt-4-1106-preview", temperature=0)
     #return ChatOpenAI(model_name="gpt-3.5-turbo-0125", temperature=0, base_url="https://ecotalkbot-ai-service.openai.azure.com/")
-    return ChatOpenAI(model_name="gpt-3.5-turbo-0125", temperature=0)
+    #return ChatOpenAI(model_name="gpt-3.5-turbo-0125", temperature=0)
 
 @st.cache_resource
 def load_gpt4():
     #return ChatOpenAI(model_name="gpt-4o", temperature=0)
     #return ChatOpenAI(deployment_name="gpt-4o", temperature=0, openai_api_base="https://au548-m4jm8vwr-swedencentral.cognitiveservices.azure.com/", openai_api_key="4uphKmHYTcaOdGZzb3PQGrSmhPL5Uz1Wtn5xNPpLCbw3k74cqanCJQQJ99ALACfhMk5XJ3w3AAAAACOG9e29")
     return AzureChatOpenAI(
-    azure_deployment="gpt-4o",  # or your deployment
-    api_version="2024-08-01-preview",  # or your api version
+    azure_deployment="gpt-4o",  
+    api_version="2024-08-01-preview",  
     temperature=0,
     max_tokens=None,
     timeout=None,
@@ -142,7 +142,6 @@ def load_gpt4():
     
 #gpt3_5 = load_gpt3_5()
 gpt4 = load_gpt4()
-#question = 'Where is the GAIA spacecraft?'
 
 @st.cache_resource
 def load_vectormodel():
@@ -152,16 +151,9 @@ def load_vectormodel():
 with st.spinner('Vent venligst mens modellerne indlæses. Det kan tage lidt tid første gang.'):
     model = load_vectormodel()
 
-#docs = vectorstore.similarity_search(question,k=5)
+
 
 msgs = StreamlitChatMessageHistory(key="langchain_messages")
-#memory = ConversationBufferMemory(chat_memory=msgs)
-#message_history = []
-
-
-
-#with st.chat_message("ai"):
-#    st.write("Velkommen til EcoTalkBot – Tal med mig om biodiversitet på landbrugsjord")
 
 
 if len(msgs.messages) == 0:
@@ -195,7 +187,7 @@ Don't try to make up answers that are not supported by the retrieved information
 Be critical of the information provided if needed. Mention the most impactful information first. Display formulas correctly, e.g. translating '\sum' to the sum symbol 'Σ'.
 Try to keep the conversation going. For example, ask the user if they are interested in a related/neighboring topic, or would like more detail on something. For example if they are interested in the lapwing, they may also be interested in other relevant birds, such as the skylark.
 
-Include references in your answer to the documents you used, to indicate where the information comes from. The documents are numbered. Use those numbers to refer to them. Use the term 'Document' followed by the number, e.g. '(Document 1)' or '(Document 2, Document 5)' when citing multiple documents. Do not list the sources below your answer. They will be provided by a different component.
+Include references in your answer to the documents you used, to indicate where the information comes from. The documents are numbered. Use those numbers to refer to them. Use the term 'Document' followed by the number, e.g. '(Document 1)' or '(Document 2, Document 5)' when citing multiple documents. Do not cite other sources than the provided documents. Do not list the sources below your answer. They will be provided by a different component.
 
 Retrieved information:
 {context}
@@ -231,15 +223,7 @@ def format_docs(docs):
         doclist.append(nd)
     return"\n\n".join( str(num+1)+') '+doc["page_content"]+'\n'+json.dumps(doc["metadata"], indent=4) for num, doc in enumerate(doclist))
 
-#keep sources of previous answers displayed
-for msg in msgs.messages:
-    if msg.type == "ai" and hasattr(msg, "sources"):
-        with st.chat_message("ai"):
-            st.write(msg.content)
-            expander = st.expander("See sources")
-            expander.write(msg.sources)
-    else:
-        st.chat_message(msg.type).write(msg.content)
+
 
 #question = st.text_input("Write a question about Gaia: ", key="input")
     
@@ -326,7 +310,7 @@ def used_sources(answer, lendocs):
             elif ', Document '+rn in answer:
                 answer = answer.replace(', Document '+rn, '')
     return answer, used
-
+#############################################################################
 
 def vectorize(query):
     sentences = [query]
@@ -334,81 +318,129 @@ def vectorize(query):
     return embeddings['dense_vecs'][0]
 
 store_fields = ["parent_doc", "chunk_number", "title", "section_headers", "page_content", "link", "year", "target_audience", "geography", "keywords", "data_type", "type_of_information"]
+
+with open("used_sources.json", "r") as f:
+    source_data = json.load(f)
 #########################################################
 
-if user_input := st.chat_input():
-    #st.write(f"Welcome, {st.session_state['username']}!")
-    print(user_input)
-    st.chat_message("human").write(user_input)
-    prev_conv = '\n'.join([msg.type+': '+msg.content for msg in msgs.messages[-4:]])
-    #if len(msgs.messages) > 1:# and contains_referring(user_input):
-    with st.spinner('Henter dokumenter...'):
-        contextualizing_prompt = contextualizing_template.format(history=prev_conv, question=user_input)
-        print(contextualizing_prompt)
-        contextualized_result = gpt4.invoke(contextualizing_prompt)
-        search_query = contextualized_result.content
-        print(search_query)
-        query_vector = vectorize(search_query)
-        response = chunks.query.near_vector(
-            filters=Filter.by_property("target_audience").contains_any(['farmer', 'all', 'consultant']),
-            near_vector=query_vector,  # A list of floating point numbers
-            limit=7,
-            return_metadata=wq.MetadataQuery(distance=True),
-            )
-        docs = response.objects
-        if len(docs) < 7:
-            no_filter = chunks.query.near_vector(
+tab1, tab2 = st.tabs(["Chatbot", "Liste af kilder"])
+with tab1:
+    st.title('EcoTalkBot')
+    #keep sources of previous answers displayed
+    for msg in msgs.messages:
+        if msg.type == "ai" and hasattr(msg, "sources"):
+            with st.chat_message("ai"):
+                st.write(msg.content)
+                expander = st.expander("See sources")
+                expander.write(msg.sources)
+        else:
+            st.chat_message(msg.type).write(msg.content)
+    if user_input := st.chat_input():
+        #st.write(f"Welcome, {st.session_state['username']}!")
+        print(user_input)
+        st.chat_message("human").write(user_input)
+        prev_conv = '\n'.join([msg.type+': '+msg.content for msg in msgs.messages[-4:]])
+        time = datetime.datetime.now()
+        filename = str(time)+'.json'
+        path = userdir+filename
+        interaction = {"user":st.session_state['username'], "date_time":str(time)}
+        interaction["user_input"] = user_input
+        #if len(msgs.messages) > 1:# and contains_referring(user_input):
+        with st.spinner('Henter dokumenter...'):
+            contextualizing_prompt = contextualizing_template.format(history=prev_conv, question=user_input)
+            print(contextualizing_prompt)
+            contextualized_result = gpt4.invoke(contextualizing_prompt)
+            search_query = contextualized_result.content
+            print(search_query)
+            interaction["contextualized_query"] = search_query
+            interaction["previous_interactions"] = prev_conv
+            query_vector = vectorize(search_query)
+            response = chunks.query.near_vector(
+                #filters=Filter.by_property("target_audience").contains_any(['farmer', 'all', 'consultant']),
                 near_vector=query_vector,  # A list of floating point numbers
-                limit=7-len(docs),
+                limit=7,
                 return_metadata=wq.MetadataQuery(distance=True),
                 )
-            docs.extend(no_filter.objects)
-    
-        #docs_long = vectorstore.similarity_search(vector_query,k=50)
-        #farmer_docs = [d for d in docs_long if 'farmer' in d.metadata["Target audience"]]
-        #docs = farmer_docs[:10]
-        #if farmer_docs == []:
-            #docs = docs_long[:7]
-    with st.spinner('Genererer svar...'):
-        full_prompt = template.format(context=format_docs(docs), question=user_input, conversation=prev_conv)
-        print(full_prompt)
-        result = gpt4.invoke(full_prompt)
-        user_msg = BaseMessage(type="human", content=user_input)
-        msgs.add_message(user_msg)
-        print(result.content)
-        ai_answer, source_numbers = used_sources(result.content, len(docs))
-        print(ai_answer)
-        sources = add_sources(docs, source_numbers)
-    with st.chat_message("ai"):
-        st.write(ai_answer)#+add_sources(docs))
-        expander = st.expander("Se kilder")
-        expander.write(sources) 
-    ai_msg = BaseMessage(type="ai", content=ai_answer)
-    setattr(ai_msg, 'sources', sources)
-    msgs.add_message(ai_msg)    
-    time = datetime.datetime.now()
-    interaction = {"user":st.session_state['username'], "date_time":str(time)}
-    interaction["user_input"] = user_input
-    interaction["contextualized_query"] = search_query
-    interaction["previous_interactions"] = prev_conv
-    interaction["retrieved_documents"] = []
-    for d in docs:
-        docjson = {}
-        for pf in store_fields:
-            docjson[pf] = d.properties[pf]
-            docjson["distance_to_query"] = d.metadata.distance
-        interaction["retrieved_documents"].append(docjson)
-    interaction["original_answer"] = result.content
-    interaction["sources"] = sources
-    #for d in sources:
-        #docjson = {"metadata":d.metadata, "page_content":d.page_content}
-        #interaction["sources"].append(docjson)
-    interaction["final_answer"] = ai_answer
-    filename = str(time)+'.json'
-    path = userdir+filename
-    with open(path, 'w') as f:
-        json.dump(interaction, f)
-    
+            docs = response.objects
+            if len(docs) < 7:
+                no_filter = chunks.query.near_vector(
+                    near_vector=query_vector,  # A list of floating point numbers
+                    limit=7-len(docs),
+                    return_metadata=wq.MetadataQuery(distance=True),
+                    )
+                docs.extend(no_filter.objects)
+            interaction["retrieved_documents"] = []
+            for d in docs:
+                docjson = {}
+                for pf in store_fields:
+                    docjson[pf] = d.properties[pf]
+                    docjson["distance_to_query"] = d.metadata.distance
+                interaction["retrieved_documents"].append(docjson)
+        
+            #docs_long = vectorstore.similarity_search(vector_query,k=50)
+            #farmer_docs = [d for d in docs_long if 'farmer' in d.metadata["Target audience"]]
+            #docs = farmer_docs[:10]
+            #if farmer_docs == []:
+                #docs = docs_long[:7]
+        with st.spinner('Genererer svar...'):
+            try:
+                full_prompt = template.format(context=format_docs(docs), question=user_input, conversation=prev_conv)
+                print(full_prompt)
+                result = gpt4.invoke(full_prompt)
+                user_msg = BaseMessage(type="human", content=user_input)
+                msgs.add_message(user_msg)
+                print(result.content)
+                ai_answer, source_numbers = used_sources(result.content, len(docs))
+                print(ai_answer)
+                sources = add_sources(docs, source_numbers)
+            except ValueError:
+                ai_answer = ''
+                with open(path, 'w') as f:
+                    json.dump(interaction, f)
+        if not ai_answer:
+            st.write('Ups, der gik noget galt. Prøv venligts igen.')
+        else:
+            with st.chat_message("ai"):
+                st.write(ai_answer)#+add_sources(docs))
+                expander = st.expander("Se kilder")
+                expander.write(sources) 
+            ai_msg = BaseMessage(type="ai", content=ai_answer)
+            setattr(ai_msg, 'sources', sources)
+            msgs.add_message(ai_msg)    
+            interaction["original_answer"] = result.content
+            interaction["sources"] = sources
+            #for d in sources:
+                #docjson = {"metadata":d.metadata, "page_content":d.page_content}
+                #interaction["sources"].append(docjson)
+            interaction["final_answer"] = ai_answer
+            filename = str(time)+'.json'
+            path = userdir+filename
+            with open(path, 'w') as f:
+                json.dump(interaction, f)
+
+###########################################################
+
+tempyear = '''Title: **{title}**  
+Year: {year}  
+Author: {author}  
+Link: {link}
+'''
+
+temp = '''Title: **{title}**  
+Author: {author}  
+Link: {link}
+'''
+
+with tab2:
+    st.header("Liste af alle kilder som chatbotten kan søge i:")
+    for d in source_data:
+        #if source_data[d]["extended (Dec 16 2024)"] == "x":
+        source_data[d]["Title"] = source_data[d]["Title"].strip().replace('.', '\.')
+        #st.markdown("| "+" | ".join([str(source_data[d].get("Title")), str(source_data[d].get("Year")), str(source_data[d].get("Author")), source_data[d]["Link"]])+" |")
+        if source_data[d]["Year"] == 'x' or source_data[d]["Year"] == None:
+            st.markdown(temp.format(title=str(source_data[d].get("Title")), author=str(source_data[d].get("Author")), link=source_data[d]["Link"]))
+        else:
+            st.markdown(tempyear.format(title=str(source_data[d].get("Title")), year=str(source_data[d].get("Year")), author=str(source_data[d].get("Author")), link=source_data[d]["Link"]))
    
     
     
