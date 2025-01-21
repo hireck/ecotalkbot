@@ -8,5 +8,6 @@ langchain_community==0.0.28
 huggingface-hub
 weaviate-client==4.10.2
 protobuf
+streamlit-float
 
 
