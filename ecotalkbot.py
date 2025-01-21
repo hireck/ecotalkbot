@@ -188,7 +188,7 @@ if len(msgs.messages) == 0:
 template = """
 You are an expert in farmland biodiversity.
 
-Your role is to assist a wide range of stakeholders, including:
+Your role is to assist a wide range of stakeholders in a Danish context, including:
 * Danish farmers (organic and non-organic)
 * Consultants for farmer organizations
 * Municipal workers
@@ -223,7 +223,7 @@ Question: {question}
 Helpful Answer:"""
 
 contextualizing_template = """ Given a chat history and the latest user question which might reference context in the chat history, formulate a standalone question which can be understood without the chat history. The overall topic is biodiversity.
-Do NOT answer the question, just reformulate it if needed and otherwise return it as is.
+Do NOT answer the question, just reformulate it if needed and otherwise return it as is. Keep it in the original language.
 
 Chat history:
 {history}
@@ -358,18 +358,28 @@ with tab1:
                 st.write(msg.content)
                 expander = st.expander("See sources")
                 expander.write(msg.sources)
+        elif msg.type == "human":
+            with st.chat_message("human"):
+                st.write(msg.content)
         else:
             st.chat_message(msg.type).write(msg.content)
-with tab1:
-    with st.container():
+#with tab1:
+    container = st.container()
+    container.float(css=float_css_helper(width="2.2rem", bottom="1rem", transition=0))
+    with container:
         st.chat_input(key='content')
-        float_parent(css=float_css_helper(width="2.2rem", bottom="2rem", transition=0))
-    if user_input:=st.session_state.content:
+        #float_parent(css=float_css_helper(width="2.2rem", bottom="1rem", transition=0))
+    #with st.container():
+    if content:=st.session_state.content:
+        user_input = str(copy.deepcopy(content))
+        del st.session_state['content']
     #if user_input := st.chat_input():   
         #st.write(f"Welcome, {st.session_state['username']}!")
         print(user_input)
         st.chat_message("human").write(user_input)
         prev_conv = '\n'.join([msg.type+': '+msg.content for msg in msgs.messages[-4:]])
+        user_msg = BaseMessage(type="human", content=user_input)
+        msgs.add_message(user_msg)
         time = datetime.datetime.now()
         filename = str(time)+'.json'
         path = userdir+filename
@@ -417,8 +427,8 @@ with tab1:
                 full_prompt = template.format(context=format_docs(docs), question=user_input, conversation=prev_conv)
                 print(full_prompt)
                 result = gpt4.invoke(full_prompt)
-                user_msg = BaseMessage(type="human", content=user_input)
-                msgs.add_message(user_msg)
+                #user_msg = BaseMessage(type="human", content=user_input)
+                #msgs.add_message(user_msg)
                 print(result.content)
                 ai_answer, source_numbers = used_sources(result.content, len(docs))
                 print(ai_answer)
@@ -437,6 +447,7 @@ with tab1:
             ai_msg = BaseMessage(type="ai", content=ai_answer)
             setattr(ai_msg, 'sources', sources)
             msgs.add_message(ai_msg)    
+            #st.session_state.content = ''
             interaction["original_answer"] = result.content
             interaction["sources"] = sources
             #for d in sources:
