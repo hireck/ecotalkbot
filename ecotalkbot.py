@@ -25,6 +25,9 @@ import weaviate
 import weaviate.classes.query as wq
 from weaviate.classes.query import Filter
 from FlagEmbedding import BGEM3FlagModel
+from streamlit_float import *
+
+float_init(theme=True, include_unstable_primary=False)
 
 client = weaviate.connect_to_local(host='weaviate')
 #st.write(client.is_ready()) 
@@ -90,7 +93,8 @@ headers = {
 openai.api_key = apikey
 
 
-
+#tab1, tab2 = st.tabs(["Chatbot", "Liste af kilder"])
+#with tab1:
 #st.title('EcoTalkBot')
 
 with st.sidebar:
@@ -100,6 +104,8 @@ with st.sidebar:
     expander.write("For at starte en dialog skal du blot skrive dit spørgsmål i skrivefeltet i bunden af skærmen. EcoTalBot er i øjeblikket i en testfase og indsamler data fra brugerinteraktioner som en del af projektet. Vi bruger udelukkende jeres samtaler til videnskabelige analyser i forbindelse med vores forskning.")
     expander = st.expander("GDPR og datasikkerhed")
     expander.write("Samtaledata og demografiske oplysninger vil blive pseudonymiseret for at sikre GDPR-overholdelse og vil blive behandlet fortroligt. Chatbotten fra universitetet registrerer dine svar, herunder eventuelle personlige oplysninger, som du måtte vælge at dele. For at minimere risikoen opfordrer vi dig til at undgå at inkludere personhenførbare oplysninger i samtalen. Vi opbevarer data sikkert på en krypteret server hos Aarhus Universitet og bruger kun de indsamlede data til videnskabelige, ikke-kommercielle formål, herunder potentielle publikationer og præsentationer. Data fra undersøgelsen opbevares i op til 5 år og slettes derefter sikkert. Alle dataindsamlinger og -behandlinger overholder EU's generelle databeskyttelsesforordning (GDPR) 2016/679. Vi bruger kun dine ikke-følsomme, pseudonymiserede data til forskningsformål. Hvis du har spørgsmål om, hvordan dine data opbevares eller behandles, kan du kontakte Aarhus Universitets databeskyttelsesrådgiver (DPO): Søren Broberg Nielsen via e-mail: soren.broberg@au.dk. Aarhus Universitet, CVR nr. 31119103, er dataansvarlig for behandlingen af dine data.")
+    expander = st.expander("Åbenhed og gennemsigtighed omkring vores brug af GenAI")
+    expander.write("Denne chatbot er baseret på et udvalg af pålidelige kilder og på sprogmodellen GPT-4o fra OpenAI, som er et Generative Artificial Intelligence (GenAI) værktøj og tilgås gennem Microsoft Azure for dette projekt. Som med enhver GenAI bedes du undlade at dele oplysninger, der involverer forretningshemmeligheder, fortrolige eller følsomme data eller ophavsretligt beskyttet materiale.  \n\n  De svar, du modtager, er derfor skabt af GenAI baseret på et udvalg af pålidelige kilder og generel information indbygget i sprogmodellen gennem fortræning på store mængder text af forskellige slags. Alle svar genereres automatisk og kan indeholde fejl. For at se den aktuelle liste over de pålidelige kilder, vi bruger til dette projekt, kan du klikke på fanen 'Kildeliste'.")
     expander = st.expander("Finansiering")
     expander.write("EcoTalkBot er en del af projektet EcoMetric, som har til formål at udvikle rammerne for et biodiversitetsmål, som kan bruges i forvaltningen til at fremme biodiversitet i landbrugslandskaber. EcoTalkBot er finansieret af seed funding fra DIGIT (Centre for Digitalisation, Big Data and Data Analytics), Aarhus Universitet. Yderligere finansiering er ydet af Ministeriet for Fødevarer, Landbrug og Fiskeri gennem Organic RDD9, koordineret af ICROFS (Internationalt Center for Forskning i Økologiske Fødevaresystemer) med støtte fra Grønt Udviklings- og Demonstrationsprogram (GUDP). Læs mere om projektet her https://projects.au.dk/sess/projects/ecometric")
     expander = st.expander("Kontakt os")
@@ -108,6 +114,10 @@ with st.sidebar:
     st.write("  \n\n  You are logged in as: ")
     #st.write(username)
     st.write(st.session_state["username"])
+
+#tab1, tab2 = st.tabs(["Chatbot", "Liste af kilder"])
+#with tab1:
+st.title('EcoTalkBot')
 
 # @st.cache_resource
 # def load_vectors():
@@ -161,6 +171,20 @@ if len(msgs.messages) == 0:
     msgs.add_message(new_msg)
     #msgs.add_ai_message("How can I help you?")
 #st.write(f"Welcome, {st.session_state['username']}!")
+
+# with tab1:
+#     st.title('EcoTalkBot')
+#     #keep sources of previous answers displayed
+#     for msg in msgs.messages:
+#         if msg.type == "ai" and hasattr(msg, "sources"):
+#             with st.chat_message("ai"):
+#                 st.write(msg.content)
+#                 expander = st.expander("See sources")
+#                 expander.write(msg.sources)
+#         else:
+#             st.chat_message(msg.type).write(msg.content)
+
+
 template = """
 You are an expert in farmland biodiversity.
 
@@ -323,9 +347,10 @@ with open("used_sources.json", "r") as f:
     source_data = json.load(f)
 #########################################################
 
-tab1, tab2 = st.tabs(["Chatbot", "Liste af kilder"])
+tab1, tab2 = st.tabs(["Chatbot", "Kildeliste"])
+
 with tab1:
-    st.title('EcoTalkBot')
+    #st.title('EcoTalkBot')
     #keep sources of previous answers displayed
     for msg in msgs.messages:
         if msg.type == "ai" and hasattr(msg, "sources"):
@@ -335,7 +360,12 @@ with tab1:
                 expander.write(msg.sources)
         else:
             st.chat_message(msg.type).write(msg.content)
-    if user_input := st.chat_input():
+with tab1:
+    with st.container():
+        st.chat_input(key='content')
+        float_parent(css=float_css_helper(width="2.2rem", bottom="2rem", transition=0))
+    if user_input:=st.session_state.content:
+    #if user_input := st.chat_input():   
         #st.write(f"Welcome, {st.session_state['username']}!")
         print(user_input)
         st.chat_message("human").write(user_input)
