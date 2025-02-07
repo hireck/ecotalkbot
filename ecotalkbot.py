@@ -167,9 +167,9 @@ with st.spinner('Vent venligst mens modellerne indlæses. Det kan tage lidt tid 
 msgs = StreamlitChatMessageHistory(key="langchain_messages")
 
 
-if len(msgs.messages) == 0:
-    new_msg = BaseMessage(type='ai', content="Velkommen til EcoTalkBot – Tal med mig om biodiversitet på landbrugsjord  \n\n  Hvordan kan jeg hjælpe dig?")
-    msgs.add_message(new_msg)
+#if len(msgs.messages) == 0:
+#    new_msg = BaseMessage(type='ai', content="Velkommen til EcoTalkBot – Tal med mig om biodiversitet på landbrugsjord  \n\n  Hvordan kan jeg hjælpe dig?")
+#    msgs.add_message(new_msg)
     #msgs.add_ai_message("How can I help you?")
 #st.write(f"Welcome, {st.session_state['username']}!")
 
@@ -350,8 +350,93 @@ with open("used_sources.json", "r") as f:
 
 tab1, tab2 = st.tabs(["Chatbot", "Kildeliste"])
 
+if 'clicked' not in st.session_state:
+    st.session_state.clicked = False
+
+if 'chosen_example' not in st.session_state:
+    st.session_state.chosen_example = ''
+
+def hide_buttons(ex=''):
+    st.session_state.clicked = True
+    st.session_state.chosen_example = ex
+
+def act_on_input(user_input):
+    st.chat_message("human").write(user_input)
+    prev_conv = '\n'.join([msg.type+': '+msg.content for msg in msgs.messages[-4:]])
+    user_msg = BaseMessage(type="human", content=user_input)
+    msgs.add_message(user_msg)
+    time = datetime.datetime.now()
+    filename = str(time)+'.json'
+    path = userdir+filename
+    interaction = {"user":st.session_state['username'], "date_time":str(time)}
+    interaction["user_input"] = user_input
+    #if len(msgs.messages) > 1:# and contains_referring(user_input):
+    with st.spinner('Henter dokumenter...'):
+        contextualizing_prompt = contextualizing_template.format(history=prev_conv, question=user_input)
+        print(contextualizing_prompt)
+        contextualized_result = gpt4.invoke(contextualizing_prompt)
+        search_query = contextualized_result.content
+        print(search_query)
+        interaction["contextualized_query"] = search_query
+        interaction["previous_interactions"] = prev_conv
+        query_vector = vectorize(search_query)
+        response = chunks.query.near_vector(
+            #filters=Filter.by_property("target_audience").contains_any(['farmer', 'all', 'consultant']),
+            near_vector=query_vector,  # A list of floating point numbers
+            limit=7,
+            return_metadata=wq.MetadataQuery(distance=True),
+            )
+        docs = response.objects
+        if len(docs) < 7:
+            no_filter = chunks.query.near_vector(
+                near_vector=query_vector,  # A list of floating point numbers
+                limit=7-len(docs),
+                return_metadata=wq.MetadataQuery(distance=True),
+                )
+            docs.extend(no_filter.objects)
+        interaction["retrieved_documents"] = []
+        for d in docs:
+            docjson = {}
+            for pf in store_fields:
+                docjson[pf] = d.properties[pf]
+                docjson["distance_to_query"] = d.metadata.distance
+            interaction["retrieved_documents"].append(docjson)
+        
+    with st.spinner('Genererer svar...'):
+        try:
+            full_prompt = template.format(context=format_docs(docs), question=user_input, conversation=prev_conv)
+            result = gpt4.invoke(full_prompt)
+            ai_answer, source_numbers = used_sources(result.content, len(docs))
+            sources = add_sources(docs, source_numbers)
+        except ValueError:
+            ai_answer = ''
+            with open(path, 'w') as f:
+                json.dump(interaction, f)
+    if not ai_answer:
+        st.write('Ups, der gik noget galt. Prøv venligts igen.')
+    else:
+        with st.chat_message("ai"):
+            st.write(ai_answer)#+add_sources(docs))
+            expander = st.expander("Se kilder")
+            expander.write(sources) 
+        ai_msg = BaseMessage(type="ai", content=ai_answer)
+        setattr(ai_msg, 'sources', sources)
+        msgs.add_message(ai_msg)    
+        #st.session_state.content = ''
+        interaction["original_answer"] = result.content
+        interaction["sources"] = sources
+        interaction["final_answer"] = ai_answer
+        filename = str(time)+'.json'
+        path = userdir+filename
+        with open(path, 'w') as f:
+            json.dump(interaction, f)
+
+
 with tab1:
-    #st.title('EcoTalkBot')
+    if len(msgs.messages) == 0:
+        new_msg = BaseMessage(type='ai', content="Velkommen til EcoTalkBot – Tal med mig om biodiversitet på landbrugsjord  \n\n  Hvordan kan jeg hjælpe dig?")
+        msgs.add_message(new_msg)
+   
     #keep sources of previous answers displayed
     for msg in msgs.messages:
         if msg.type == "ai" and hasattr(msg, "sources"):
@@ -364,102 +449,22 @@ with tab1:
                 st.write(msg.content)
         else:
             st.chat_message(msg.type).write(msg.content)
-#with tab1:
+
     container = st.container()
     container.float(css=float_css_helper(width="2.2rem", bottom="1rem", transition=0))
     with container:
-    #with bottom:
-        st.chat_input(key='content')
+        st.chat_input(key='content', on_submit=hide_buttons)
         #float_parent(css=float_css_helper(width="2.2rem", bottom="1rem", transition=0))
-    #with st.container():
+    if len(msgs.messages) == 1 and not st.session_state.clicked:
+        st.write("Her er nogle eksempler på spørgsmål, du kan stille. Du kan klikke på et af dem, eller stille dit eget spørgsmål i indtastningsfeltet nedenfor.")
+        examples = ["Hvilke fordele har biodiversitet for landbruget?", "Er hegn omkring marker en god idé?"]
+        for ex in examples:
+            st.button(ex, on_click=hide_buttons, args=[ex])
+    if st.session_state.chosen_example:
+        act_on_input(st.session_state.chosen_example)
+        st.session_state.chosen_example = ''
     if content:=st.session_state.content:
-        user_input = str(copy.deepcopy(content))
-        #del st.session_state['content']
-    #if user_input := st.chat_input():   
-        #st.write(f"Welcome, {st.session_state['username']}!")
-        print(user_input)
-        st.chat_message("human").write(user_input)
-        prev_conv = '\n'.join([msg.type+': '+msg.content for msg in msgs.messages[-4:]])
-        user_msg = BaseMessage(type="human", content=user_input)
-        msgs.add_message(user_msg)
-        time = datetime.datetime.now()
-        filename = str(time)+'.json'
-        path = userdir+filename
-        interaction = {"user":st.session_state['username'], "date_time":str(time)}
-        interaction["user_input"] = user_input
-        #if len(msgs.messages) > 1:# and contains_referring(user_input):
-        with st.spinner('Henter dokumenter...'):
-            contextualizing_prompt = contextualizing_template.format(history=prev_conv, question=user_input)
-            print(contextualizing_prompt)
-            contextualized_result = gpt4.invoke(contextualizing_prompt)
-            search_query = contextualized_result.content
-            print(search_query)
-            interaction["contextualized_query"] = search_query
-            interaction["previous_interactions"] = prev_conv
-            query_vector = vectorize(search_query)
-            response = chunks.query.near_vector(
-                #filters=Filter.by_property("target_audience").contains_any(['farmer', 'all', 'consultant']),
-                near_vector=query_vector,  # A list of floating point numbers
-                limit=7,
-                return_metadata=wq.MetadataQuery(distance=True),
-                )
-            docs = response.objects
-            if len(docs) < 7:
-                no_filter = chunks.query.near_vector(
-                    near_vector=query_vector,  # A list of floating point numbers
-                    limit=7-len(docs),
-                    return_metadata=wq.MetadataQuery(distance=True),
-                    )
-                docs.extend(no_filter.objects)
-            interaction["retrieved_documents"] = []
-            for d in docs:
-                docjson = {}
-                for pf in store_fields:
-                    docjson[pf] = d.properties[pf]
-                    docjson["distance_to_query"] = d.metadata.distance
-                interaction["retrieved_documents"].append(docjson)
-        
-            #docs_long = vectorstore.similarity_search(vector_query,k=50)
-            #farmer_docs = [d for d in docs_long if 'farmer' in d.metadata["Target audience"]]
-            #docs = farmer_docs[:10]
-            #if farmer_docs == []:
-                #docs = docs_long[:7]
-        with st.spinner('Genererer svar...'):
-            try:
-                full_prompt = template.format(context=format_docs(docs), question=user_input, conversation=prev_conv)
-                print(full_prompt)
-                result = gpt4.invoke(full_prompt)
-                #user_msg = BaseMessage(type="human", content=user_input)
-                #msgs.add_message(user_msg)
-                print(result.content)
-                ai_answer, source_numbers = used_sources(result.content, len(docs))
-                print(ai_answer)
-                sources = add_sources(docs, source_numbers)
-            except ValueError:
-                ai_answer = ''
-                with open(path, 'w') as f:
-                    json.dump(interaction, f)
-        if not ai_answer:
-            st.write('Ups, der gik noget galt. Prøv venligts igen.')
-        else:
-            with st.chat_message("ai"):
-                st.write(ai_answer)#+add_sources(docs))
-                expander = st.expander("Se kilder")
-                expander.write(sources) 
-            ai_msg = BaseMessage(type="ai", content=ai_answer)
-            setattr(ai_msg, 'sources', sources)
-            msgs.add_message(ai_msg)    
-            #st.session_state.content = ''
-            interaction["original_answer"] = result.content
-            interaction["sources"] = sources
-            #for d in sources:
-                #docjson = {"metadata":d.metadata, "page_content":d.page_content}
-                #interaction["sources"].append(docjson)
-            interaction["final_answer"] = ai_answer
-            filename = str(time)+'.json'
-            path = userdir+filename
-            with open(path, 'w') as f:
-                json.dump(interaction, f)
+        act_on_input(content)
 
 ###########################################################
 
