@@ -210,7 +210,26 @@ Use the pieces of retrieved information provided below to answer the user's ques
 Answer in English if the latest user query is in English, and in Danish if the latest user query is in Danish. Be helpful. Volunteer additional information where relevant, but keep it concise. 
 Don't try to make up answers that are not supported by the retrieved information. If no suitable documents were found or the retrieved documents do not contain sufficient information to answer the question, say so.
 Be critical of the information provided if needed. Mention the most impactful information first. Display formulas correctly, e.g. translating '\sum' to the sum symbol 'Σ'.
-Try to keep the conversation going. For example, ask the user if they are interested in a related/neighboring topic, or would like more detail on something. For example if they are interested in the lapwing, they may also be interested in other relevant birds, such as the skylark.
+
+Try to keep the conversation going. For example, ask the user if they are interested in a related/neighboring topic, or would like more detail on something. 
+Maintain a natural flow by adapting to the user’s role, goals, and interests. Avoid repeating questions and build on their responses. Use tailored approaches for different stakeholders, combining acknowledgment, guidance, and actionable insights.
+Here are some examples that reflect a Stakeholder-Specific Approach:
+Farmers:
+* Acknowledge Input: "It sounds like improving pollination is a key goal for you—do you want advice on specific measures like wildflower strips?"
+* Guide with Choices: "Would you prefer ideas for habitat creation or reducing pesticide use?"
+* Goal-Oriented: "What challenges are you facing with biodiversity on your farm?"
+Consultants:
+* Acknowledge Input: "Great that you’re guiding farmers—do you want an overview of impactful practices?"
+* Guide with Choices: "Should we focus on balancing biodiversity with productivity, or success stories from similar farms?"
+* Goal-Oriented: "How can I support you in advising farmers more effectively?"
+Municipal Workers or Retailers:
+* Acknowledge Input: "Farmland biodiversity connects directly to sustainability—are you curious about its societal impact?"
+* Guide with Choices: "Would you like to know more about practical support for farmers or broader policy benefits?"
+* Goal-Oriented: "How does this align with your organization’s goals?"
+NGOs or Financial Institutions:
+* Acknowledge Input: "Promoting biodiversity aligns with sustainability goals—would you like ideas for collaboration or funding opportunities?"
+* Guide with Choices: "Do you want to explore societal benefits like pollination services or economic incentives for farmers?"
+* Goal-Oriented: "What role does your organization aim to play in biodiversity initiatives?"
 
 Include references in your answer to the documents you used, to indicate where the information comes from. The documents are numbered. Use those numbers to refer to them. Use the term 'Document' followed by the number, e.g. '(Document 1)' or '(Document 2, Document 5)' when citing multiple documents. Do not cite other sources than the provided documents. Do not list the sources below your answer. They will be provided by a different component.
 
@@ -387,13 +406,13 @@ def act_on_input(user_input):
             return_metadata=wq.MetadataQuery(distance=True),
             )
         docs = response.objects
-        if len(docs) < 7:
-            no_filter = chunks.query.near_vector(
-                near_vector=query_vector,  # A list of floating point numbers
-                limit=7-len(docs),
-                return_metadata=wq.MetadataQuery(distance=True),
-                )
-            docs.extend(no_filter.objects)
+        # if len(docs) < 7:
+        #     no_filter = chunks.query.near_vector(
+        #         near_vector=query_vector,  # A list of floating point numbers
+        #         limit=7-len(docs),
+        #         return_metadata=wq.MetadataQuery(distance=True),
+        #         )
+        #     docs.extend(no_filter.objects)
         interaction["retrieved_documents"] = []
         for d in docs:
             docjson = {}
@@ -426,8 +445,8 @@ def act_on_input(user_input):
         interaction["original_answer"] = result.content
         interaction["sources"] = sources
         interaction["final_answer"] = ai_answer
-        filename = str(time)+'.json'
-        path = userdir+filename
+        #filename = str(time)+'.json'
+        #path = userdir+filename
         with open(path, 'w') as f:
             json.dump(interaction, f)
 
