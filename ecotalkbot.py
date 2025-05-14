@@ -104,7 +104,7 @@ with st.sidebar:
     expander = st.expander("Sådan bruger du EcoTalkBot")
     expander.write("For at starte en dialog skal du blot skrive dit spørgsmål i skrivefeltet i bunden af skærmen. EcoTalBot er i øjeblikket i en testfase og indsamler data fra brugerinteraktioner som en del af projektet. Vi bruger udelukkende jeres samtaler til videnskabelige analyser i forbindelse med vores forskning.")
     expander = st.expander("GDPR og datasikkerhed")
-    expander.write("Samtaledata og demografiske oplysninger vil blive pseudonymiseret for at sikre GDPR-overholdelse og vil blive behandlet fortroligt. Chatbotten fra universitetet registrerer dine svar, herunder eventuelle personlige oplysninger, som du måtte vælge at dele. For at minimere risikoen opfordrer vi dig til at undgå at inkludere personhenførbare oplysninger i samtalen. Vi opbevarer data sikkert på en krypteret server hos Aarhus Universitet og bruger kun de indsamlede data til videnskabelige, ikke-kommercielle formål, herunder potentielle publikationer og præsentationer. Data fra undersøgelsen opbevares i op til 5 år og slettes derefter sikkert. Alle dataindsamlinger og -behandlinger overholder EU's generelle databeskyttelsesforordning (GDPR) 2016/679. Vi bruger kun dine ikke-følsomme, pseudonymiserede data til forskningsformål. Hvis du har spørgsmål om, hvordan dine data opbevares eller behandles, kan du kontakte Aarhus Universitets databeskyttelsesrådgiver (DPO): Søren Broberg Nielsen via e-mail: soren.broberg@au.dk. Aarhus Universitet, CVR nr. 31119103, er dataansvarlig for behandlingen af dine data.")
+    expander.write("Samtaledata og demografiske oplysninger vil blive pseudonymiseret for at sikre GDPR-overholdelse og vil blive behandlet fortroligt. Chatbotten fra universitetet registrerer dine svar, herunder eventuelle personlige oplysninger, som du måtte vælge at dele. For at minimere risikoen opfordrer vi dig til at undgå at inkludere personhenførbare oplysninger i samtalen. Vi opbevarer data sikkert på en krypteret server hos Aarhus Universitet og bruger kun de indsamlede data til videnskabelige, ikke-kommercielle formål, herunder potentielle publikationer og præsentationer. Data fra undersøgelsen opbevares i op til 5 år og slettes derefter sikkert. Alle dataindsamlinger og -behandlinger overholder EU's generelle databeskyttelsesforordning (GDPR) 2016/679. Vi bruger kun dine ikke-følsomme, pseudonymiserede data til forskningsformål. Hvis du har spørgsmål om, hvordan dine data opbevares eller behandles, kan du kontakte Aarhus Universitets databeskyttelsesrådgiver (DPO) Karina Søndergaard som er advokat fra HjulmandKaptain og kan kontaktes på dpo@au.dk. Aarhus Universitet, CVR nr. 31119103, er dataansvarlig for behandlingen af dine data.")
     expander = st.expander("Åbenhed og gennemsigtighed omkring vores brug af GenAI")
     expander.write("Denne chatbot er baseret på et udvalg af pålidelige kilder og på sprogmodellen GPT-4o fra OpenAI, som er et Generative Artificial Intelligence (GenAI) værktøj og tilgås gennem Microsoft Azure for dette projekt. Som med enhver GenAI bedes du undlade at dele oplysninger, der involverer forretningshemmeligheder, fortrolige eller følsomme data eller ophavsretligt beskyttet materiale.  \n\n  De svar, du modtager, er derfor skabt af GenAI baseret på et udvalg af pålidelige kilder og generel information indbygget i sprogmodellen gennem fortræning på store mængder text af forskellige slags. Alle svar genereres automatisk og kan indeholde fejl.")
     expander = st.expander("Finansiering")
@@ -469,16 +469,17 @@ with tab1:
         else:
             st.chat_message(msg.type).write(msg.content)
 
-    container = st.container()
-    container.float(css=float_css_helper(width="2.2rem", bottom="1rem", transition=0))
-    with container:
-        st.chat_input(key='content', on_submit=hide_buttons)
-        #float_parent(css=float_css_helper(width="2.2rem", bottom="1rem", transition=0))
+    
     if len(msgs.messages) == 1 and not st.session_state.clicked:
         st.write("Her er nogle eksempler på spørgsmål, du kan stille. Du kan klikke på et af dem, eller stille dit eget spørgsmål i indtastningsfeltet nedenfor.")
         examples = ["Hvilke fordele har biodiversitet for landbruget?", "Er hegn omkring marker en god idé?"]
         for ex in examples:
             st.button(ex, on_click=hide_buttons, args=[ex])
+    container = st.container()
+    if st.session_state.clicked:
+        container.float(css=float_css_helper(width="2.2rem", bottom="3rem", transition=0))
+    with container:
+        st.chat_input(key='content', on_submit=hide_buttons)
     if st.session_state.chosen_example:
         act_on_input(st.session_state.chosen_example)
         st.session_state.chosen_example = ''
