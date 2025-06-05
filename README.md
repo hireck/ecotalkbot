@@ -56,3 +56,5 @@ Rather than using the original user query, we prompt the LLM to rephrase the que
 > Standalone version of the question:
 
 ## Response generation
+
+## Data collection
