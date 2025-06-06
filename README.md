@@ -4,8 +4,10 @@ Created by Veridicity: https://veridicity.ai
 
 EcoTalkBot is a chatbot that was developed as part of a research project at Aarhus university, which aims to promote interest in and understanding of biodiversity on agricultural land. Through an interactive dialogue with the chatbot, users have easy access to the latest knowledge about biodiversity. The answers are based on a selection of reliable sources, made avaialble through a RAG system. 
 The app runs on an ubuntu machine on Azure, in a docker. It is written in Python, uses GPT-4o through the Azure API, a Weaviate vector database (locally on the cloud instance).
+
 The main file is ecotalkbot.py
-You can start the app by running 'sudo docker compose up --build -d' in the ecotalkbot directory.
+
+You can start the app by running 'sudo docker compose up --build -d' in the ecotalkbot directory. After the project is built the embedding model will load once the first user logged in. This takes some time.
 
 ## The user interface
 We use Streamlit for the UI. There is a side bar on the left that provides information about the project. In the main panel the user can chat with the bot. There is a second tab where the user can view the list of source documents that the system can search in.
@@ -173,9 +175,10 @@ Only the references used in the answer are displayed, and they are listed in the
 
 ## Data collection
 Users are given a user name and password for the purpose of data collection. These login credentials are stored in a secrets.toml file in the .streamlit folder, with the following structure:
-
-> [passwords]  
-> user1 = "pw1"  
-> user2 = "pw2"  
+```
+[passwords]  
+user1 = "pw1"  
+user2 = "pw2"
+```
 
 The interactions between the human participants and the chatbot are recorded on a docker volume. A folder is created for each user and each interaction is stored as a json file in that folder. Each file contains the username, a timestamp, the original query, the contextualized query, the history, the retrieved docuemnts, and the generated answer.
