@@ -42,7 +42,7 @@ For this initial implementation, we only used vector search, using the BAAI/bge-
 The 28GB Azure instance we had for this project turned out to be on the small side for running an embedding model of this size. Therefore we kept the retrieval limited to one step and refrained from using a reranker. A reranker would, among other things, facilitate combining vector search with keyword search.
 
 ### Contextualizing the query
-Rather than using the original user query, we prompt the LLM to rephrase the query, using the preceding conversation as context. This is because soemtimes queries lack information, for example they will use words like 'it' to refer to something that was mentionaed earlier. The contextualizing step serves to include such information in the query explicitly so it can be understood without context.
+Rather than using the original user query, we prompt the LLM to rephrase the query, using the preceding conversation as context. This is because sometimes queries lack information, for example they will use words like 'it' to refer to something that was mentionaed earlier. The contextualizing step serves to include such information in the query explicitly so it can be understood without context, and yields better retrieval results.
 
 > Given a chat history and the latest user question which might reference context in the chat history, formulate a standalone question which can be understood without the chat history. The overall topic is biodiversity.
 > Do NOT answer the question, just reformulate it if needed and otherwise return it as is. Keep it in the original language.
