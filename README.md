@@ -11,7 +11,7 @@ You can start the app by running 'sudo docker compose up --build -d' in the ecot
 We use Streamlit for the UI. There is a side bar on the left that provides information about the project. In the main panel the user can chat with the bot. There is a second tab where the user can view the list of source documents that the system can search in.
 In the chat window a welcome message is displayed, and some queries are suggested to get started with.
 
-The information displayed is in Danish. In future interations we plan to enable switching to other languages
+The information displayed is in Danish. In future interations we plan to enable switching to other languages.
 
 ## Source documents
 The researchers involved in the project compiled a spreadsheet with relevant documents.
@@ -28,6 +28,42 @@ The documents were downloaded in HTML or PDF format. Many of the documents are w
 * PDF documents were converted to markdown with marker pdf
 * We then use the MarkdownHeaderTextSplitter from LangChain to split the content into sections with headers.
 * We add the information from the original spreadsheet to the chunks as metadata
+
+### Chunks
+The resulting chunks are written to a json file, accompanied by their metadata (from the original spredsheet), a chunk number, and an embedding vector of the text ("page_content"). here is an example of such a chunk:
+
+```
+  {
+    "page_content": "Het is belangrijk dat de PARTRIDGE maatregelen niet worden bereden door landbouwmachines of worden betreden door loslopende honden. In de lente en zomer wordt hier gebroed door patrijzen en andere vogels. In de wintermaanden zijn dit de schaarse plekken in het landschap waar vogels en kleine zoogdieren veilig kunnen rusten en eten.  \n![](_page_1_Picture_11.jpeg)",
+    "parent_doc": "72",
+    "chunk_number": "10",
+    "title": "Samenhang (Cohesive measures)",
+    "section_headers": [
+        "RUST"
+    ],
+    "link": "https://northsearegion.eu/media/22559/nl-factsheet-1-samenhang.pdf",
+    "abstract": "Vejledning",
+    "keywords": [
+        "agerh\u00f8ne",
+        "sammenh\u00e6ng"
+    ],
+    "data_type": "pdf",
+    "type_of_information": "Vejledning, anbefaling",
+    "target_audience": [
+        "farmer"
+    ],
+    "geography": [
+        "Europe",
+        "Netherlands"
+    ],
+    "language": "Dutch",
+    "publisher": "Interreg North Sea Region PARTRIDGE project (publication)",
+    "author": "Interreg PARTRIDGE",
+    "open_access": true,
+    "available_as_pdf": true,
+    "bge_dense_vector": [0.03424072265625, 0.045379638671875, -0.07666015625, 0.003021240234375, -0.0300445556640625, ... ]
+  }
+```
 
 ### Uploading the chunks to a Weaviate cluster
 We use BAAI/bge-m3 FlagEmbeddings as the embedding model to encode the chunks. This enables search on semantic similarity, i.e. finding document chunks that are simlar in meaning to the user query.
