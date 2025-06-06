@@ -13,6 +13,9 @@ In the chat window a welcome message is displayed, and some queries are suggeste
 
 The information displayed is in Danish. In future interations we plan to enable switching to other languages.
 
+![image](https://github.com/user-attachments/assets/5b20a3e5-7e16-4849-bb26-484350532172)
+
+
 ## Source documents
 The researchers involved in the project compiled a spreadsheet with relevant documents.
 The documents were downloaded in HTML or PDF format. Many of the documents are written in Danish, but some documents in English, German, and Dutch were also included.
@@ -157,11 +160,16 @@ In the main LLM call we use the original user query, the history and the retriev
 > {conversation}
 > 
 > Question: {question}
+> 
 > Helpful Answer:
+
 
 ### Displaying the references
 
 Only the references used in the answer are displayed, and they are listed in the order in which they are mentioned in the answer. In order to do this our program identifies the citations in the ai generated text, and renumbers them before diplaying the text to the user.
+
+![image](https://github.com/user-attachments/assets/b1562c43-fc53-4e19-b656-3340cabf506e)
+
 
 ## Data collection
 Users are given a user name and password for the purpose of data collection. These login credentials are stored in a secrets.toml file in the .streamlit folder, with the following structure:
