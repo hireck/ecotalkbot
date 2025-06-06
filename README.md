@@ -174,8 +174,8 @@ Only the references used in the answer are displayed, and they are listed in the
 ## Data collection
 Users are given a user name and password for the purpose of data collection. These login credentials are stored in a secrets.toml file in the .streamlit folder, with the following structure:
 
-> [passwords]
-> user1 = "pw1"
-> user2 = "pw2"
+> [passwords]  
+> user1 = "pw1"  
+> user2 = "pw2"  
 
 The interactions between the human participants and the chatbot are recorded on a docker volume. A folder is created for each user and each interaction is stored as a json file in that folder. Each file contains the username, a timestamp, the original query, the contextualized query, the history, the retrieved docuemnts, and the generated answer.
